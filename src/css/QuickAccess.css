@@ -1,0 +1,269 @@
+/* Quick Access / Password Vault Page Styles */
+.quick-access-page {
+  padding: 25px 32px;
+  text-align: left;
+
+  @media (max-width: 1024px) {
+    padding: 16px;
+  }
+}
+
+.page-header-box {
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  color: white;
+  padding: 30px;
+  border-radius: 14px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.page-header-box h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: bold;
+  color: white;
+}
+
+.page-header-box p {
+  margin-top: 10px;
+  opacity: 0.9;
+}
+
+/* Tabs */
+.modern-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  border: none;
+  background: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  transform: translateY(-2px);
+}
+
+.tab-btn.active-tab {
+  background: #2a5298;
+  color: white;
+}
+
+/* Modern Card */
+.modern-card {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.modern-card h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #1e3c72;
+  font-weight: bold;
+}
+
+/* Info Grid */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.info-item {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid #e3e8ef;
+}
+
+.info-item label {
+  display: block;
+  color: #666;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.info-value {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #222;
+  word-break: break-all;
+}
+
+/* Modern Form */
+.modern-form-group {
+  margin-bottom: 18px;
+}
+
+.modern-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.modern-input {
+  width: 100%;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid #d6dce5;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: white;
+  color: #222;
+}
+
+.modern-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* Action / Header rows */
+.action-row,
+.header-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+/* Modern Buttons */
+.modern-btn {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.modern-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.primary-btn {
+  background: #2a5298;
+  color: white;
+}
+
+.secondary-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.warning-btn {
+  background: #f0ad4e;
+  color: white;
+}
+
+.info-btn {
+  background: #5bc0de;
+  color: white;
+}
+
+/* Modern Table */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.modern-table th,
+.modern-table td {
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.modern-table thead {
+  background: #2a5298;
+  color: white;
+}
+
+.modern-table thead th {
+  font-weight: 600;
+}
+
+.modern-table tbody tr {
+  background: white;
+}
+
+.modern-table tbody tr:nth-child(even) {
+  background: #f9fbfd;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.empty-text {
+  text-align: center;
+  color: #777;
+  padding: 20px;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .page-header-box {
+    background: linear-gradient(135deg, #0f1f3d, #1a3a6b);
+  }
+  .modern-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .modern-card h3 {
+    color: var(--accent);
+  }
+  .info-item {
+    background: var(--code-bg);
+    border-color: var(--border);
+  }
+  .info-value {
+    color: var(--text-h);
+  }
+  .tab-btn {
+    background: var(--code-bg);
+    color: var(--text-h);
+  }
+  .tab-btn.active-tab {
+    background: #2a5298;
+    color: white;
+  }
+  .modern-table thead {
+    background: #1a3a6b;
+  }
+  .modern-table tbody tr {
+    background: var(--bg);
+  }
+  .modern-table tbody tr:nth-child(even) {
+    background: var(--code-bg);
+  }
+  .modern-input {
+    background: var(--bg);
+    color: var(--text-h);
+    border-color: var(--border);
+  }
+}

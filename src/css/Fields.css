@@ -1,0 +1,85 @@
+/* Fields Page Styles */
+.fields-container {
+  padding: 24px 32px;
+  text-align: left;
+
+  @media (max-width: 1024px) {
+    padding: 16px;
+  }
+}
+
+.fields-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 16px;
+}
+
+.fields-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.fields-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.xml-update-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.xml-path-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-input {
+  width: 100%;
+  max-width: 500px;
+}
+
+/* Table */
+.fields-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.fields-table th,
+.fields-table td {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.fields-table thead tr {
+  background: #212529;
+  color: #fff;
+}
+
+.fields-table th {
+  font-weight: 600;
+  text-align: left;
+}
+
+.fields-table tbody tr:nth-child(odd) {
+  background: var(--code-bg);
+}
+
+.fields-table tbody tr:nth-child(even) {
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .fields-table thead tr {
+    background: #2e303a;
+    color: #f3f4f6;
+  }
+}
