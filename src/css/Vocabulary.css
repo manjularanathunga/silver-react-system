@@ -1,0 +1,243 @@
+/* Vocabulary Page Styles */
+.vocab-container {
+  padding: 24px 32px;
+  text-align: left;
+
+  @media (max-width: 1024px) {
+    padding: 16px;
+  }
+}
+
+/* Hero Header */
+.vocab-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.vocab-hero h1 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 24px;
+}
+
+.vocab-subtitle {
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* Form Section */
+.vocab-form-section {
+  margin-bottom: 24px;
+}
+
+.vocab-form-header {
+  margin-bottom: 20px;
+}
+
+.vocab-form-header h2 {
+  margin: 0 0 6px;
+  color: var(--text-h);
+}
+
+.vocab-form-header p {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.vocab-form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vocab-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Tense Section */
+.tense-heading {
+  margin: 24px 0 16px;
+  color: var(--text-h);
+  font-size: 18px;
+}
+
+.tense-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tense-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+
+.tense-card h4 {
+  margin: 0 0 12px;
+  color: var(--text-h);
+  font-size: 15px;
+}
+
+/* Filter Section */
+.vocab-filter-section {
+  margin-bottom: 24px;
+}
+
+.vocab-filter-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.vocab-filter-row .form-group {
+  margin-bottom: 0;
+}
+
+.vocab-filter-row .form-control {
+  min-width: 180px;
+}
+
+.vocab-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* List Section */
+.vocab-list-section {
+  margin-bottom: 24px;
+}
+
+.vocab-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.vocab-list-header h2 {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.vocab-count {
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* Empty State */
+.vocab-empty {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.vocab-empty h3 {
+  color: var(--text-h);
+  margin-bottom: 8px;
+}
+
+.vocab-empty p {
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+/* Table */
+.vocab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.vocab-table th,
+.vocab-table td {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.vocab-table thead tr {
+  background: #1e3c72;
+  color: #fff;
+}
+
+.vocab-table th {
+  font-weight: 600;
+  text-align: left;
+}
+
+.vocab-table tbody tr:nth-child(odd) {
+  background: var(--code-bg);
+}
+
+.vocab-table tbody tr:nth-child(even) {
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .vocab-table thead tr {
+    background: #1a3a6b;
+  }
+}
+
+.vocab-word-cell {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.vocab-comment-cell {
+  font-size: 13px;
+  color: var(--text);
+  max-width: 200px;
+}
+
+.vocab-tense-cell {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.vocab-tense-cell strong {
+  display: block;
+  color: var(--text-h);
+}
+
+.vocab-tense-cell small {
+  display: block;
+  color: var(--text);
+  font-style: italic;
+}
+
+.vocab-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.vocab-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}

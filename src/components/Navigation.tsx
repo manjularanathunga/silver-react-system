@@ -23,6 +23,9 @@ function Navigation() {
         <li>
           <NavLink to="/ops">Ops</NavLink>
         </li>
+        <li>
+          <NavLink to="/vocabulary">Vocabulary</NavLink>
+        </li>
       </ul>
     </nav>
   )
