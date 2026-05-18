@@ -58,11 +58,18 @@ function getEmptyWord(): VocabWord {
   }
 }
 
+const PAGE_SIZE = 10
+
 function Vocabulary() {
   const [words, setWords] = useState<VocabWord[]>([])
-  const [formWord, setFormWord] = useState<VocabWord>(getEmptyWord())
   const [showForm, setShowForm] = useState(false)
+  const [formWord, setFormWord] = useState<VocabWord>(getEmptyWord())
   const [isEditing, setIsEditing] = useState(false)
+
+  // Comment popup
+  const [showCommentPopup, setShowCommentPopup] = useState(false)
+  const [commentWord, setCommentWord] = useState<VocabWord | null>(null)
+  const [commentText, setCommentText] = useState('')
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -70,10 +77,21 @@ function Vocabulary() {
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const clearMessages = () => {
     setSuccessMessage('')
     setErrorMessage('')
+  }
+
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg)
+    setTimeout(() => setSuccessMessage(''), 3000)
+  }
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg)
+    setTimeout(() => setErrorMessage(''), 4000)
   }
 
   const loadWords = useCallback(async () => {
@@ -84,7 +102,6 @@ function Vocabulary() {
       const data = await response.json()
       setWords(data.data || data || [])
     } catch {
-      // API not available - show empty list without error blocking the page
       setWords([])
     } finally {
       setIsLoading(false)
@@ -115,18 +132,17 @@ function Vocabulary() {
   const closeForm = () => {
     setShowForm(false)
     setFormWord(getEmptyWord())
-    clearMessages()
   }
 
   const saveWord = async () => {
     clearMessages()
 
     if (!formWord.word.trim()) {
-      setErrorMessage('Swedish word is required')
+      showError('Swedish word is required')
       return
     }
     if (!formWord.meaning.trim()) {
-      setErrorMessage('Meaning is required')
+      showError('Meaning is required')
       return
     }
 
@@ -139,12 +155,12 @@ function Vocabulary() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Save failed')
-      setSuccessMessage(isEditing ? 'Word updated successfully' : 'Word saved successfully')
+      showSuccess(isEditing ? 'Word updated successfully' : 'Word saved successfully')
       setShowForm(false)
       setFormWord(getEmptyWord())
       loadWords()
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to save word')
+      showError(error instanceof Error ? error.message : 'Failed to save word')
     } finally {
       setIsLoading(false)
     }
@@ -158,10 +174,36 @@ function Vocabulary() {
     try {
       const response = await fetch(`${API_BASE}/delete/${word.id}`, { method: 'DELETE' })
       if (!response.ok) throw new Error('Delete failed')
-      setSuccessMessage('Word deleted successfully')
+      showSuccess('Word deleted successfully')
       loadWords()
     } catch {
-      setErrorMessage('Failed to delete word')
+      showError('Failed to delete word')
+    }
+  }
+
+  // Comment popup
+  const openCommentPopup = (word: VocabWord) => {
+    setCommentWord(word)
+    setCommentText(word.comment || '')
+    setShowCommentPopup(true)
+  }
+
+  const saveComment = async () => {
+    if (!commentWord) return
+    const updated = { ...commentWord, comment: commentText }
+    try {
+      const response = await fetch(`${API_BASE}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      })
+      if (!response.ok) throw new Error('Save failed')
+      showSuccess('Comment saved')
+      setShowCommentPopup(false)
+      setCommentWord(null)
+      loadWords()
+    } catch {
+      showError('Failed to save comment')
     }
   }
 
@@ -185,6 +227,17 @@ function Vocabulary() {
     return matchesSearch && matchesCategory
   })
 
+  // Pagination
+  const totalPages = Math.ceil(filteredWords.length / PAGE_SIZE) || 1
+  const pagedWords = filteredWords.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, categoryFilter])
+
   const getCategoryDisplay = (cat: string) => {
     const found = CATEGORIES.find((c) => c.value === cat)
     return found ? found.displayName : cat
@@ -192,28 +245,82 @@ function Vocabulary() {
 
   return (
     <div className="vocab-container">
+      {/* TOAST POPUP */}
+      {(errorMessage || successMessage) && (
+        <div className="vocab-toast-overlay">
+          <div className={`vocab-toast ${errorMessage ? 'vocab-toast-error' : 'vocab-toast-success'}`}>
+            <span>{errorMessage || successMessage}</span>
+            <button className="vocab-toast-close" onClick={clearMessages}>×</button>
+          </div>
+        </div>
+      )}
+
+      {/* COMMENT POPUP */}
+      {showCommentPopup && commentWord && (
+        <div className="vocab-modal-overlay" onClick={() => setShowCommentPopup(false)}>
+          <div className="vocab-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="vocab-modal-header">
+              <h3>Usage / Comment</h3>
+              <span className="vocab-modal-word">{commentWord.word} — {commentWord.meaning}</span>
+            </div>
+            <textarea
+              className="vocab-modal-textarea"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Add usage examples, notes, or comments..."
+              rows={6}
+            />
+            <div className="vocab-modal-actions">
+              <button className="btn btn-primary" onClick={saveComment}>
+                Save
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowCommentPopup(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="vocab-hero">
         <div>
-          <h1>Swedish Vocabulary Manager</h1>
+          <h1>🇸🇪 Swedish Vocabulary</h1>
           <p className="vocab-subtitle">
-            Manage Swedish words, meanings, usage comments, categories, and tense details.
+            Build your Swedish vocabulary with words, tenses, and usage examples.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={openAddForm}>
+        <button className="btn btn-primary vocab-add-btn" onClick={openAddForm}>
           + Add New Word
         </button>
       </div>
 
-      {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
-      {successMessage && <div className="alert alert-success">{successMessage}</div>}
+      {/* QUICK STATS */}
+      <div className="vocab-stats">
+        <div className="vocab-stat-item">
+          <span className="vocab-stat-number">{words.length}</span>
+          <span className="vocab-stat-label">Total Words</span>
+        </div>
+        <div className="vocab-stat-item">
+          <span className="vocab-stat-number">
+            {new Set(words.map((w) => w.category)).size}
+          </span>
+          <span className="vocab-stat-label">Categories</span>
+        </div>
+        <div className="vocab-stat-item">
+          <span className="vocab-stat-number">
+            {words.filter((w) => w.tenseDetails?.presentTense).length}
+          </span>
+          <span className="vocab-stat-label">With Tenses</span>
+        </div>
+      </div>
 
       {/* ADD / EDIT FORM */}
       {showForm && (
         <section className="card vocab-form-section">
           <div className="vocab-form-header">
-            <h2>{isEditing ? 'Edit Swedish Word' : 'Add Swedish Word'}</h2>
-            <p>Add meaning, category, usage comment, and tense examples.</p>
+            <h2>{isEditing ? '✏️ Edit Word' : '➕ Add New Word'}</h2>
+            <button className="btn btn-sm btn-secondary" onClick={closeForm}>✕ Close</button>
           </div>
 
           <div className="vocab-form-grid-3">
@@ -257,7 +364,7 @@ function Vocabulary() {
             <label>Comment / Usage</label>
             <textarea
               className="form-control"
-              rows={4}
+              rows={3}
               placeholder="Example: Hon är min fru."
               value={formWord.comment}
               onChange={(e) => setFormWord({ ...formWord, comment: e.target.value })}
@@ -268,23 +375,23 @@ function Vocabulary() {
 
           <div className="tense-grid">
             <div className="tense-card">
-              <h4>Present Tense</h4>
+              <h4>Present</h4>
               <div className="form-group">
-                <label>Current / Present</label>
+                <label>Form</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Example: går"
+                  placeholder="går"
                   value={formWord.tenseDetails?.presentTense || ''}
                   onChange={(e) => updateTense('presentTense', e.target.value)}
                 />
               </div>
               <div className="form-group">
-                <label>Present Example</label>
+                <label>Example</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Example: Jag går hem."
+                  placeholder="Jag går hem."
                   value={formWord.tenseDetails?.presentExample || ''}
                   onChange={(e) => updateTense('presentExample', e.target.value)}
                 />
@@ -292,23 +399,23 @@ function Vocabulary() {
             </div>
 
             <div className="tense-card">
-              <h4>Past Tense</h4>
+              <h4>Past</h4>
               <div className="form-group">
-                <label>Past</label>
+                <label>Form</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Example: gick"
+                  placeholder="gick"
                   value={formWord.tenseDetails?.pastTense || ''}
                   onChange={(e) => updateTense('pastTense', e.target.value)}
                 />
               </div>
               <div className="form-group">
-                <label>Past Example</label>
+                <label>Example</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Example: Jag gick hem."
+                  placeholder="Jag gick hem."
                   value={formWord.tenseDetails?.pastExample || ''}
                   onChange={(e) => updateTense('pastExample', e.target.value)}
                 />
@@ -316,23 +423,23 @@ function Vocabulary() {
             </div>
 
             <div className="tense-card">
-              <h4>Future Tense</h4>
+              <h4>Future</h4>
               <div className="form-group">
-                <label>Future</label>
+                <label>Form</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Example: ska gå"
+                  placeholder="ska gå"
                   value={formWord.tenseDetails?.futureTense || ''}
                   onChange={(e) => updateTense('futureTense', e.target.value)}
                 />
               </div>
               <div className="form-group">
-                <label>Future Example</label>
+                <label>Example</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Example: Jag ska gå hem."
+                  placeholder="Jag ska gå hem."
                   value={formWord.tenseDetails?.futureExample || ''}
                   onChange={(e) => updateTense('futureExample', e.target.value)}
                 />
@@ -355,17 +462,17 @@ function Vocabulary() {
       <section className="card vocab-filter-section">
         <div className="vocab-filter-row">
           <div className="form-group">
-            <label>Search</label>
+            <label>🔍 Search</label>
             <input
               type="text"
               className="form-control"
-              placeholder="Search word or meaning"
+              placeholder="Search word or meaning..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="form-group">
-            <label>Category</label>
+            <label>📂 Category</label>
             <select
               className="form-control"
               value={categoryFilter}
@@ -399,7 +506,7 @@ function Vocabulary() {
       {/* WORD LIST */}
       <section className="card vocab-list-section">
         <div className="vocab-list-header">
-          <h2>Vocabulary List</h2>
+          <h2>📖 Vocabulary List</h2>
           <span className="vocab-count">{filteredWords.length} word(s)</span>
         </div>
 
@@ -414,82 +521,123 @@ function Vocabulary() {
             <h3>No words found</h3>
             <p>Add your first Swedish word to start building your vocabulary.</p>
             <button className="btn btn-primary" onClick={openAddForm}>
-              Add Word
+              + Add Word
             </button>
           </div>
         ) : (
-          <div className="table-wrapper">
-            <table className="vocab-table">
-              <thead>
-                <tr>
-                  <th>Swedish Word</th>
-                  <th>Meaning</th>
-                  <th>Comment / Usage</th>
-                  <th>Category</th>
-                  <th>Present</th>
-                  <th>Past</th>
-                  <th>Future</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredWords.map((w, index) => (
-                  <tr key={w.id ?? index}>
-                    <td className="vocab-word-cell">{w.word}</td>
-                    <td>{w.meaning}</td>
-                    <td className="vocab-comment-cell">{w.comment}</td>
-                    <td>
-                      <span className="vocab-badge">{getCategoryDisplay(w.category)}</span>
-                    </td>
-                    <td className="vocab-tense-cell">
-                      {w.tenseDetails?.presentTense && (
-                        <>
-                          <strong>{w.tenseDetails.presentTense}</strong>
-                          {w.tenseDetails.presentExample && (
-                            <small>{w.tenseDetails.presentExample}</small>
-                          )}
-                        </>
-                      )}
-                    </td>
-                    <td className="vocab-tense-cell">
-                      {w.tenseDetails?.pastTense && (
-                        <>
-                          <strong>{w.tenseDetails.pastTense}</strong>
-                          {w.tenseDetails.pastExample && (
-                            <small>{w.tenseDetails.pastExample}</small>
-                          )}
-                        </>
-                      )}
-                    </td>
-                    <td className="vocab-tense-cell">
-                      {w.tenseDetails?.futureTense && (
-                        <>
-                          <strong>{w.tenseDetails.futureTense}</strong>
-                          {w.tenseDetails.futureExample && (
-                            <small>{w.tenseDetails.futureExample}</small>
-                          )}
-                        </>
-                      )}
-                    </td>
-                    <td className="vocab-actions">
-                      <button
-                        className="btn btn-sm btn-warning"
-                        onClick={() => openEditForm(w)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => deleteWord(w)}
-                      >
-                        Delete
-                      </button>
-                    </td>
+          <>
+            <div className="table-wrapper">
+              <table className="vocab-table">
+                <thead>
+                  <tr>
+                    <th>Swedish Word</th>
+                    <th>Meaning</th>
+                    <th>Present</th>
+                    <th>Past</th>
+                    <th>Future</th>
+                    <th>Category</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {pagedWords.map((w, index) => (
+                    <tr key={w.id ?? index}>
+                      <td className="vocab-word-cell">{w.word}</td>
+                      <td>{w.meaning}</td>
+                      <td className="vocab-tense-cell">
+                        {w.tenseDetails?.presentTense && (
+                          <>
+                            <strong>{w.tenseDetails.presentTense}</strong>
+                            {w.tenseDetails.presentExample && (
+                              <small>{w.tenseDetails.presentExample}</small>
+                            )}
+                          </>
+                        )}
+                      </td>
+                      <td className="vocab-tense-cell">
+                        {w.tenseDetails?.pastTense && (
+                          <>
+                            <strong>{w.tenseDetails.pastTense}</strong>
+                            {w.tenseDetails.pastExample && (
+                              <small>{w.tenseDetails.pastExample}</small>
+                            )}
+                          </>
+                        )}
+                      </td>
+                      <td className="vocab-tense-cell">
+                        {w.tenseDetails?.futureTense && (
+                          <>
+                            <strong>{w.tenseDetails.futureTense}</strong>
+                            {w.tenseDetails.futureExample && (
+                              <small>{w.tenseDetails.futureExample}</small>
+                            )}
+                          </>
+                        )}
+                      </td>
+                      <td>
+                        <span className="vocab-badge">{getCategoryDisplay(w.category)}</span>
+                      </td>
+                      <td className="vocab-actions">
+                        <button
+                          className="btn btn-sm btn-info"
+                          title="Edit comment"
+                          onClick={() => openCommentPopup(w)}
+                        >
+                          💬
+                        </button>
+                        <button
+                          className="btn btn-sm btn-warning"
+                          onClick={() => openEditForm(w)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => deleteWord(w)}
+                        >
+                          Del
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* PAGINATION */}
+            {totalPages > 1 && (
+              <div className="vocab-pagination">
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <div className="vocab-pagination-buttons">
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    ← Prev
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-light'}`}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
