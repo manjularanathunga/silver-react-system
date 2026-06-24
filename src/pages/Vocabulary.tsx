@@ -466,7 +466,7 @@ function Vocabulary() {
             <input
               type="text"
               className="form-control"
-              placeholder="Search word or meaning..."
+              placeholder="Search Swedish or English word..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

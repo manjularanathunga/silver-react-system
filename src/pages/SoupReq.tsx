@@ -436,41 +436,29 @@ function SoupReq() {
                   <tr>
                     <th>#</th>
                     <th>Name</th>
-                    <th>Response</th>
-                    <th>Request</th>
-                    <th>#</th>
-                    <th>#</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayedList.map((x) => (
                     <tr key={x.id}>
                       <td>{x.id}</td>
-                      <td>
-                        {getFileName(x.url)}{' '}
-                        <button className="btn btn-light btn-sm" onClick={() => openXmlFile(x.url)}>
-                          Request
-                        </button>
-                      </td>
-                      <td>
+                      <td>{getFileName(x.url)}</td>
+                      <td className="soup-actions-cell">
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => performSoupRequest(x.id)}
                         >
-                          Send Request
+                          Send
                         </button>
-                      </td>
-                      <td>
                         {x.linkExists && (
                           <button
-                            className="btn btn-primary btn-sm"
+                            className="btn btn-secondary btn-sm"
                             onClick={() => openExtFile(x.link)}
                           >
                             Copy Response
                           </button>
                         )}
-                      </td>
-                      <td>
                         {x.linkExists && (
                           <button
                             className="btn btn-success btn-sm"
@@ -479,20 +467,21 @@ function SoupReq() {
                             View
                           </button>
                         )}
-                      </td>
-                      <td>
+                        <button className="btn btn-light btn-sm" onClick={() => openXmlFile(x.url)}>
+                          Request
+                        </button>
                         <button
                           className={`btn btn-sm ${x.favorite ? 'btn-warning' : 'btn-info'}`}
                           onClick={() => makeFavorite(x)}
                         >
-                          {x.favorite ? 'Favorite' : 'Add to Favorite'}
+                          {x.favorite ? '★' : '☆'}
                         </button>
                       </td>
                     </tr>
                   ))}
                   {displayedList.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center">
+                      <td colSpan={3} className="text-center">
                         {viewMode === 'favorites' ? 'No favorite records found' : 'No records found'}
                       </td>
                     </tr>

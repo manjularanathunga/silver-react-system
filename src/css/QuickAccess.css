@@ -1,6 +1,6 @@
 /* Quick Access / Password Vault Page Styles */
 .quick-access-page {
-  padding: 25px 32px;
+  padding: 16px 25px;
   text-align: left;
 
   @media (max-width: 1024px) {

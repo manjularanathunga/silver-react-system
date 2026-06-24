@@ -1,6 +1,6 @@
 /* Jira Page Styles */
 .jira-container {
-  padding: 24px 32px;
+  padding: 16px 25px;
   text-align: left;
 
   @media (max-width: 1024px) {

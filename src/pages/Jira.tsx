@@ -37,7 +37,7 @@ function getEmptyTask(): JiraTask {
     jiraLink: '',
     folderLocation: '',
     fileLocation: '',
-    jiraStatus: 'Incoming',
+    jiraStatus: 'Backlog',
     createdDate: new Date().toISOString().split('T')[0],
     completedDate: null,
     readMeInfo: '',
@@ -568,7 +568,25 @@ function Jira() {
                       </span>
                     </td>
                     <td>{task.title}</td>
-                    <td>{task.jiraStatus}</td>
+                    <td>
+                      <select
+                        className="form-control form-control-sm"
+                        value={task.jiraStatus}
+                        onChange={(e) => {
+                          const updated = { ...task, jiraStatus: e.target.value }
+                          setJiraTasks((prev) =>
+                            prev.map((t) => (t.jiraId === task.jiraId ? updated : t))
+                          )
+                          updateJiraPriority(updated)
+                        }}
+                      >
+                        {JIRA_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td>{task.createdDate}</td>
                     <td>
                       <select

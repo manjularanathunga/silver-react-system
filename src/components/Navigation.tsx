@@ -15,16 +15,22 @@ function Navigation() {
           <NavLink to="/jira">Jira</NavLink>
         </li>
         <li>
-          <NavLink to="/fields">Fields</NavLink>
+          <NavLink to="/releases">Releases</NavLink>
         </li>
         <li>
           <NavLink to="/soupReq">SOUP Req</NavLink>
+        </li>
+                <li>
+          <NavLink to="/errors">Errors</NavLink>
+        </li>
+        <li>
+          <NavLink to="/vocabulary">Vocabulary</NavLink>
         </li>
         <li>
           <NavLink to="/ops">Ops</NavLink>
         </li>
         <li>
-          <NavLink to="/vocabulary">Vocabulary</NavLink>
+          <NavLink to="/fields">Fields</NavLink>
         </li>
       </ul>
     </nav>

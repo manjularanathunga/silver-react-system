@@ -1,6 +1,6 @@
 /* SOUP Request Page Styles */
 .soup-container {
-  padding: 24px 32px;
+  padding: 16px 25px;
   text-align: left;
 
   @media (max-width: 1024px) {
@@ -136,4 +136,12 @@
 .ibm-mq-section h3 {
   color: var(--text-h);
   margin-bottom: 16px;
+}
+
+
+.soup-actions-cell {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
 }

@@ -7,6 +7,8 @@ import SoupReq from './pages/SoupReq'
 import Jira from './pages/Jira'
 import QuickAccess from './pages/QuickAccess'
 import Vocabulary from './pages/Vocabulary'
+import ErrorTracker from './pages/ErrorTracker'
+import Releases from './pages/Releases'
 import './css/App.css'
 
 function App() {
@@ -21,6 +23,8 @@ function App() {
         <Route path="/jira" element={<Jira />} />
         <Route path="/quickAccess" element={<QuickAccess />} />
         <Route path="/vocabulary" element={<Vocabulary />} />
+        <Route path="/errors" element={<ErrorTracker />} />
+        <Route path="/releases" element={<Releases />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
