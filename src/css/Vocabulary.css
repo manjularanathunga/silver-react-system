@@ -10,12 +10,7 @@
 
 /* Hero Header */
 .vocab-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 16px;
+  margin-bottom: 12px;
 }
 
 .vocab-hero h1 {
@@ -30,88 +25,154 @@
   font-size: 14px;
 }
 
-.vocab-add-btn {
-  font-size: 15px;
-  padding: 10px 20px;
+/* Toolbar: stats + add button in one row */
+.vocab-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-/* Stats */
+.vocab-add-btn {
+  font-size: 14px;
+  padding: 8px 18px;
+}
+
+/* Stats - compact inline */
 .vocab-stats {
   display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .vocab-stat-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 12px 24px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--code-bg);
-  min-width: 100px;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  background: #d1fae5;
 }
 
 .vocab-stat-number {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--accent);
+  color: #065f46;
 }
 
 .vocab-stat-label {
   font-size: 12px;
-  color: var(--text);
-  margin-top: 2px;
+  color: #047857;
+}
+
+@media (prefers-color-scheme: dark) {
+  .vocab-stat-item {
+    background: #1a3a2a;
+    border-color: #2d6b45;
+  }
+  .vocab-stat-number { color: #6ee7b7; }
+  .vocab-stat-label { color: #a7f3d0; }
 }
 
 /* Form Section */
 .vocab-form-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  background: #1b2a3d;
+  border: 1px solid #2d4a6f;
+  border-radius: 12px;
+  padding: 20px;
+  color: #e2e8f0;
 }
 
 .vocab-form-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 16px;
   margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #2d4a6f;
 }
 
 .vocab-form-header h2 {
   margin: 0;
-  color: var(--text-h);
+  color: #f1f5f9;
   font-size: 18px;
+}
+
+.vocab-form-header-actions {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.vocab-form-section .form-group label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.vocab-form-section .form-control {
+  background: #0f1a2b;
+  border: 1px solid #334155;
+  color: #f1f5f9;
+}
+
+.vocab-form-section .form-control:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.vocab-form-section .form-control::placeholder {
+  color: #64748b;
 }
 
 .vocab-form-grid-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 }
 
-.vocab-form-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
+@media (prefers-color-scheme: dark) {
+  .vocab-form-section {
+    background: #0f172a;
+    border-color: #1e293b;
+  }
+  .vocab-form-header { border-bottom-color: #1e293b; }
+  .vocab-form-section .form-control {
+    background: #020617;
+    border-color: #1e293b;
+  }
+  .vocab-tense-toggle { border-top-color: #1e293b; }
+  .tense-card {
+    background: #020617;
+    border-color: #1e293b;
+  }
+}
+
+/* Tense toggle button */
+.vocab-tense-toggle {
+  margin: 14px 0;
+  padding-top: 12px;
+  border-top: 1px solid #2d4a6f;
 }
 
 /* Tense Section */
-.tense-heading {
-  margin: 20px 0 14px;
-  color: var(--text-h);
-  font-size: 16px;
-}
-
 .tense-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
+  margin-top: 10px;
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
@@ -119,41 +180,31 @@
 }
 
 .tense-card {
-  padding: 14px;
-  border: 1px solid var(--border);
+  padding: 12px;
+  border: 1px solid #334155;
   border-radius: 8px;
-  background: var(--code-bg);
+  background: #0f1a2b;
 }
 
 .tense-card h4 {
-  margin: 0 0 10px;
-  color: var(--text-h);
-  font-size: 14px;
+  margin: 0 0 8px;
+  color: #7dd3fc;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-/* Filter Section */
-.vocab-filter-section {
-  margin-bottom: 20px;
-}
-
+/* Filter row — inline inside list section */
 .vocab-filter-row {
   display: flex;
-  gap: 14px;
-  align-items: flex-end;
+  gap: 10px;
+  align-items: center;
   flex-wrap: wrap;
-}
-
-.vocab-filter-row .form-group {
-  margin-bottom: 0;
+  margin-bottom: 14px;
 }
 
 .vocab-filter-row .form-control {
-  min-width: 180px;
-}
-
-.vocab-filter-actions {
-  display: flex;
-  gap: 8px;
+  min-width: 160px;
+  max-width: 240px;
 }
 
 /* List Section */
@@ -165,7 +216,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .vocab-list-header h2 {
@@ -185,101 +236,146 @@
 /* Empty State */
 .vocab-empty {
   text-align: center;
-  padding: 40px 20px;
-}
-
-.vocab-empty h3 {
-  color: var(--text-h);
-  margin-bottom: 8px;
+  padding: 30px 20px;
+  color: var(--text);
 }
 
 .vocab-empty p {
-  color: var(--text);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 /* Table */
 .vocab-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
+  table-layout: auto;
 }
 
 .vocab-table th,
 .vocab-table td {
-  padding: 9px 10px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  vertical-align: top;
+  vertical-align: middle;
+  text-align: left;
 }
 
+/* Column widths */
+.vocab-table th:nth-child(1),
+.vocab-table td:nth-child(1) { width: 7%; text-align: center; }
+.vocab-table th:nth-child(2),
+.vocab-table td:nth-child(2) { width: 18%; }
+.vocab-table th:nth-child(3),
+.vocab-table td:nth-child(3) { width: 22%; }
+.vocab-table th:nth-child(4),
+.vocab-table td:nth-child(4) { width: 15%; }
+.vocab-table th:nth-child(5),
+.vocab-table td:nth-child(5) { width: 12%; }
+.vocab-table th:nth-child(6),
+.vocab-table td:nth-child(6) { width: 26%; white-space: nowrap; }
+
 .vocab-table thead tr {
-  background: #1e3c72;
+  background: #1b4332;
   color: #fff;
 }
 
 .vocab-table th {
   font-weight: 600;
   text-align: left;
-  font-size: 12px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .vocab-table tbody tr:nth-child(odd) {
-  background: var(--code-bg);
+  background: #f0fdf4;
 }
 
 .vocab-table tbody tr:nth-child(even) {
-  background: var(--bg);
+  background: #ecfdf5;
 }
 
 .vocab-table tbody tr:hover {
-  background: var(--accent-bg);
+  background: #d1fae5;
 }
 
 @media (prefers-color-scheme: dark) {
   .vocab-table thead tr {
-    background: #1a3a6b;
+    background: #14532d;
+  }
+  .vocab-table tbody tr:nth-child(odd) {
+    background: #1a2e1a;
+  }
+  .vocab-table tbody tr:nth-child(even) {
+    background: #162816;
+  }
+  .vocab-table tbody tr:hover {
+    background: #1e3a1e;
   }
 }
 
 .vocab-word-cell {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
+  white-space: nowrap;
+  font-size: 16px;
+}
+
+/* Tense summary in table — compact tags */
+.vocab-tense-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.vocab-tense-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  font-size: 11px;
+  color: #1e40af;
+  font-family: var(--mono);
   white-space: nowrap;
 }
 
-.vocab-tense-cell {
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.vocab-tense-cell strong {
-  display: block;
-  color: var(--text-h);
-}
-
-.vocab-tense-cell small {
-  display: block;
-  color: var(--text);
-  font-style: italic;
+@media (prefers-color-scheme: dark) {
+  .vocab-tense-tag {
+    background: #1e3a5f;
+    border-color: #3b82f6;
+    color: #93c5fd;
+  }
 }
 
 .vocab-badge {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 12px;
-  background: var(--accent-bg);
-  color: var(--accent);
+  background: #fef3c7;
+  color: #92400e;
   font-size: 11px;
   font-weight: 500;
   white-space: nowrap;
+  border: 1px solid #fcd34d;
+}
+
+@media (prefers-color-scheme: dark) {
+  .vocab-badge {
+    background: #3a2a0a;
+    color: #fcd34d;
+    border-color: #92400e;
+  }
 }
 
 .vocab-actions {
   display: flex;
   gap: 4px;
   white-space: nowrap;
+  justify-content: flex-start;
+  flex-shrink: 0;
 }
 
 /* Toast Popup - Centered */
@@ -442,7 +538,7 @@
   display: flex;
   gap: 10px;
   margin-top: 16px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 /* Pagination */
@@ -461,4 +557,111 @@
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+
+/* Article radio buttons in form */
+.vocab-article-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.vocab-article-row > label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.vocab-article-options {
+  display: flex;
+  gap: 8px;
+}
+
+.vocab-radio-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: #0f1a2b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.vocab-radio-btn input[type="radio"] {
+  display: none;
+}
+
+.vocab-radio-btn.active {
+  background: #1d4ed8;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.vocab-radio-btn:hover:not(.active) {
+  border-color: #64748b;
+  color: #e2e8f0;
+}
+
+/* Article tag in table */
+.vocab-article-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+
+.vocab-article-tag.en {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.vocab-article-tag.ett {
+  background: #fce7f3;
+  color: #9d174d;
+  border: 1px solid #f9a8d4;
+}
+
+@media (prefers-color-scheme: dark) {
+  .vocab-article-tag.en {
+    background: #1e3a5f;
+    color: #93c5fd;
+    border-color: #3b82f6;
+  }
+  .vocab-article-tag.ett {
+    background: #4a1942;
+    color: #f9a8d4;
+    border-color: #9d174d;
+  }
+}
+
+
+/* Book/Page cell */
+.vocab-book-cell {
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+}
+
+/* Form grid 2 columns for comment + book + page */
+.vocab-form-grid-2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.5fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .vocab-form-grid-2 { grid-template-columns: 1fr; }
 }

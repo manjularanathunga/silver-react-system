@@ -30,6 +30,12 @@ function Navigation() {
           <NavLink to="/ops">Ops</NavLink>
         </li>
         <li>
+          <NavLink to="/expenses">Expenses</NavLink>
+        </li>
+        <li>
+          <NavLink to="/ex-systems">ExSystems</NavLink>
+        </li>
+        <li>
           <NavLink to="/fields">Fields</NavLink>
         </li>
       </ul>

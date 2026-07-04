@@ -17,6 +17,9 @@ interface VocabWord {
   meaning: string
   comment: string
   category: string
+  article: 'en' | 'ett' | ''
+  book: string
+  page: string
   tenseDetails: TenseDetails | null
 }
 
@@ -54,6 +57,9 @@ function getEmptyWord(): VocabWord {
     meaning: '',
     comment: '',
     category: 'COMMON',
+    article: '',
+    book: '',
+    page: '',
     tenseDetails: getEmptyTense(),
   }
 }
@@ -65,6 +71,7 @@ function Vocabulary() {
   const [showForm, setShowForm] = useState(false)
   const [formWord, setFormWord] = useState<VocabWord>(getEmptyWord())
   const [isEditing, setIsEditing] = useState(false)
+  const [showTense, setShowTense] = useState(false)
 
   // Comment popup
   const [showCommentPopup, setShowCommentPopup] = useState(false)
@@ -73,6 +80,7 @@ function Vocabulary() {
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [bookFilter, setBookFilter] = useState('')
 
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -113,10 +121,17 @@ function Vocabulary() {
   }, [loadWords])
 
   const openAddForm = () => {
-    setFormWord(getEmptyWord())
-    setIsEditing(false)
-    setShowForm(true)
     clearMessages()
+    const searchValue = search.trim()
+    const newWord = getEmptyWord()
+    if (searchValue) {
+      newWord.word = searchValue
+      newWord.meaning = searchValue
+    }
+    setFormWord(newWord)
+    setIsEditing(false)
+    setShowTense(false)
+    setShowForm(true)
   }
 
   const openEditForm = (word: VocabWord) => {
@@ -125,6 +140,10 @@ function Vocabulary() {
       tenseDetails: word.tenseDetails || getEmptyTense(),
     })
     setIsEditing(true)
+    // Show tense if word has tense data
+    const hasTense = word.tenseDetails &&
+      (word.tenseDetails.presentTense || word.tenseDetails.pastTense || word.tenseDetails.futureTense)
+    setShowTense(!!hasTense)
     setShowForm(true)
     clearMessages()
   }
@@ -132,6 +151,7 @@ function Vocabulary() {
   const closeForm = () => {
     setShowForm(false)
     setFormWord(getEmptyWord())
+    setShowTense(false)
   }
 
   const saveWord = async () => {
@@ -146,18 +166,23 @@ function Vocabulary() {
       return
     }
 
+    // If tense is hidden, don't send tense data
+    const wordToSave = showTense ? formWord : { ...formWord, tenseDetails: null }
+
     setIsLoading(true)
     try {
       const response = await fetch(`${API_BASE}/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formWord),
+        body: JSON.stringify(wordToSave),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Save failed')
-      showSuccess(isEditing ? 'Word updated successfully' : 'Word saved successfully')
+      showSuccess(`✓ Added: "${wordToSave.word}" — ${wordToSave.meaning} [${getCategoryDisplay(wordToSave.category)}]`)
       setShowForm(false)
       setFormWord(getEmptyWord())
+      setShowTense(false)
+      setSearch('')
       loadWords()
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Failed to save word')
@@ -224,8 +249,12 @@ function Vocabulary() {
       w.word.toLowerCase().includes(search.toLowerCase()) ||
       w.meaning.toLowerCase().includes(search.toLowerCase())
     const matchesCategory = !categoryFilter || w.category === categoryFilter
-    return matchesSearch && matchesCategory
+    const matchesBook = !bookFilter || w.book === bookFilter
+    return matchesSearch && matchesCategory && matchesBook
   })
+
+  // Collect unique books from words for filter dropdown
+  const bookOptions = [...new Set(words.map(w => w.book).filter(Boolean))]
 
   // Pagination
   const totalPages = Math.ceil(filteredWords.length / PAGE_SIZE) || 1
@@ -236,7 +265,7 @@ function Vocabulary() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, categoryFilter])
+  }, [search, categoryFilter, bookFilter])
 
   const getCategoryDisplay = (cat: string) => {
     const found = CATEGORIES.find((c) => c.value === cat)
@@ -290,56 +319,60 @@ function Vocabulary() {
             Build your Swedish vocabulary with words, tenses, and usage examples.
           </p>
         </div>
-        <button className="btn btn-primary vocab-add-btn" onClick={openAddForm}>
-          + Add New Word
-        </button>
       </div>
 
-      {/* QUICK STATS */}
-      <div className="vocab-stats">
-        <div className="vocab-stat-item">
-          <span className="vocab-stat-number">{words.length}</span>
-          <span className="vocab-stat-label">Total Words</span>
-        </div>
-        <div className="vocab-stat-item">
-          <span className="vocab-stat-number">
-            {new Set(words.map((w) => w.category)).size}
-          </span>
-          <span className="vocab-stat-label">Categories</span>
-        </div>
-        <div className="vocab-stat-item">
-          <span className="vocab-stat-number">
-            {words.filter((w) => w.tenseDetails?.presentTense).length}
-          </span>
-          <span className="vocab-stat-label">With Tenses</span>
+      {/* QUICK STATS + ADD BUTTON ROW */}
+      <div className="vocab-toolbar">
+        <div className="vocab-stats">
+          <div className="vocab-stat-item">
+            <span className="vocab-stat-number">{words.length}</span>
+            <span className="vocab-stat-label">Total</span>
+          </div>
+          <div className="vocab-stat-item">
+            <span className="vocab-stat-number">
+              {new Set(words.map((w) => w.category)).size}
+            </span>
+            <span className="vocab-stat-label">Categories</span>
+          </div>
+          <div className="vocab-stat-item">
+            <span className="vocab-stat-number">
+              {words.filter((w) => w.tenseDetails?.presentTense).length}
+            </span>
+            <span className="vocab-stat-label">Tenses</span>
+          </div>
         </div>
       </div>
 
-      {/* ADD / EDIT FORM */}
+      {/* ADD / EDIT FORM — compact with tense toggle */}
       {showForm && (
         <section className="card vocab-form-section">
           <div className="vocab-form-header">
             <h2>{isEditing ? '✏️ Edit Word' : '➕ Add New Word'}</h2>
-            <button className="btn btn-sm btn-secondary" onClick={closeForm}>✕ Close</button>
+            <div className="vocab-form-header-actions">
+              <button className="btn btn-primary btn-sm" onClick={saveWord} disabled={isLoading}>
+                {isEditing ? '✓ Update' : '✓ Save'}
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={closeForm}>✕ Cancel</button>
+            </div>
           </div>
 
           <div className="vocab-form-grid-3">
             <div className="form-group">
-              <label>Swedish Word</label>
+              <label>Swedish Word *</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Example: en fru"
+                placeholder="en fru"
                 value={formWord.word}
                 onChange={(e) => setFormWord({ ...formWord, word: e.target.value })}
               />
             </div>
             <div className="form-group">
-              <label>Meaning / Translation</label>
+              <label>Meaning *</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Example: wife"
+                placeholder="wife"
                 value={formWord.meaning}
                 onChange={(e) => setFormWord({ ...formWord, meaning: e.target.value })}
               />
@@ -360,154 +393,217 @@ function Vocabulary() {
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Comment / Usage</label>
-            <textarea
-              className="form-control"
-              rows={3}
-              placeholder="Example: Hon är min fru."
-              value={formWord.comment}
-              onChange={(e) => setFormWord({ ...formWord, comment: e.target.value })}
-            />
-          </div>
-
-          <h3 className="tense-heading">Tense Details</h3>
-
-          <div className="tense-grid">
-            <div className="tense-card">
-              <h4>Present</h4>
-              <div className="form-group">
-                <label>Form</label>
+          <div className="vocab-article-row">
+            <label>Article:</label>
+            <div className="vocab-article-options">
+              <label className={`vocab-radio-btn ${formWord.article === 'en' ? 'active' : ''}`}>
                 <input
-                  type="text"
-                  className="form-control"
-                  placeholder="går"
-                  value={formWord.tenseDetails?.presentTense || ''}
-                  onChange={(e) => updateTense('presentTense', e.target.value)}
+                  type="radio"
+                  name="article"
+                  value="en"
+                  checked={formWord.article === 'en'}
+                  onChange={() => setFormWord({ ...formWord, article: 'en' })}
                 />
-              </div>
-              <div className="form-group">
-                <label>Example</label>
+                En
+              </label>
+              <label className={`vocab-radio-btn ${formWord.article === 'ett' ? 'active' : ''}`}>
                 <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Jag går hem."
-                  value={formWord.tenseDetails?.presentExample || ''}
-                  onChange={(e) => updateTense('presentExample', e.target.value)}
+                  type="radio"
+                  name="article"
+                  value="ett"
+                  checked={formWord.article === 'ett'}
+                  onChange={() => setFormWord({ ...formWord, article: 'ett' })}
                 />
-              </div>
-            </div>
-
-            <div className="tense-card">
-              <h4>Past</h4>
-              <div className="form-group">
-                <label>Form</label>
+                Ett
+              </label>
+              <label className={`vocab-radio-btn ${formWord.article === '' ? 'active' : ''}`}>
                 <input
-                  type="text"
-                  className="form-control"
-                  placeholder="gick"
-                  value={formWord.tenseDetails?.pastTense || ''}
-                  onChange={(e) => updateTense('pastTense', e.target.value)}
+                  type="radio"
+                  name="article"
+                  value=""
+                  checked={formWord.article === ''}
+                  onChange={() => setFormWord({ ...formWord, article: '' })}
                 />
-              </div>
-              <div className="form-group">
-                <label>Example</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Jag gick hem."
-                  value={formWord.tenseDetails?.pastExample || ''}
-                  onChange={(e) => updateTense('pastExample', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="tense-card">
-              <h4>Future</h4>
-              <div className="form-group">
-                <label>Form</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="ska gå"
-                  value={formWord.tenseDetails?.futureTense || ''}
-                  onChange={(e) => updateTense('futureTense', e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>Example</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Jag ska gå hem."
-                  value={formWord.tenseDetails?.futureExample || ''}
-                  onChange={(e) => updateTense('futureExample', e.target.value)}
-                />
-              </div>
+                None
+              </label>
             </div>
           </div>
 
-          <div className="vocab-form-actions">
-            <button className="btn btn-primary" onClick={saveWord} disabled={isLoading}>
-              {isEditing ? 'Update Word' : 'Save Word'}
-            </button>
-            <button className="btn btn-secondary" onClick={closeForm}>
-              Cancel
+          <div className="vocab-form-grid-2">
+            <div className="form-group">
+              <label>Comment / Usage</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Hon är min fru."
+                value={formWord.comment}
+                onChange={(e) => setFormWord({ ...formWord, comment: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Book</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Book name"
+                list="book-options"
+                value={formWord.book}
+                onChange={(e) => setFormWord({ ...formWord, book: e.target.value })}
+              />
+              <datalist id="book-options">
+                {bookOptions.map((book) => (
+                  <option key={book} value={book} />
+                ))}
+              </datalist>
+            </div>
+            <div className="form-group">
+              <label>Page</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Page no."
+                value={formWord.page}
+                onChange={(e) => setFormWord({ ...formWord, page: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* Tense toggle */}
+          <div className="vocab-tense-toggle">
+            <button
+              className={`btn btn-sm ${showTense ? 'btn-warning' : 'btn-secondary'}`}
+              onClick={() => setShowTense(!showTense)}
+            >
+              {showTense ? '▼ Hide Tenses' : '▶ Add Tenses (optional)'}
             </button>
           </div>
+
+          {showTense && (
+            <div className="tense-grid">
+              <div className="tense-card">
+                <h4>Present</h4>
+                <div className="form-group">
+                  <label>Form</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="går"
+                    value={formWord.tenseDetails?.presentTense || ''}
+                    onChange={(e) => updateTense('presentTense', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Example</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Jag går hem."
+                    value={formWord.tenseDetails?.presentExample || ''}
+                    onChange={(e) => updateTense('presentExample', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="tense-card">
+                <h4>Past</h4>
+                <div className="form-group">
+                  <label>Form</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="gick"
+                    value={formWord.tenseDetails?.pastTense || ''}
+                    onChange={(e) => updateTense('pastTense', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Example</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Jag gick hem."
+                    value={formWord.tenseDetails?.pastExample || ''}
+                    onChange={(e) => updateTense('pastExample', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="tense-card">
+                <h4>Future</h4>
+                <div className="form-group">
+                  <label>Form</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="ska gå"
+                    value={formWord.tenseDetails?.futureTense || ''}
+                    onChange={(e) => updateTense('futureTense', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Example</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Jag ska gå hem."
+                    value={formWord.tenseDetails?.futureExample || ''}
+                    onChange={(e) => updateTense('futureExample', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
-      {/* FILTER */}
-      <section className="card vocab-filter-section">
-        <div className="vocab-filter-row">
-          <div className="form-group">
-            <label>🔍 Search</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search Swedish or English word..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label>📂 Category</label>
-            <select
-              className="form-control"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="">All Categories</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.displayName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="vocab-filter-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                setSearch('')
-                setCategoryFilter('')
-              }}
-            >
-              Reset
-            </button>
-            <button className="btn btn-secondary" onClick={loadWords}>
-              Reload
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* WORD LIST */}
+      {/* FILTER + LIST */}
       <section className="card vocab-list-section">
         <div className="vocab-list-header">
           <h2>📖 Vocabulary List</h2>
           <span className="vocab-count">{filteredWords.length} word(s)</span>
+        </div>
+
+        <div className="vocab-filter-row">
+          <button className="btn btn-primary vocab-add-btn" onClick={openAddForm}>
+            + Add Word
+          </button>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Search word or meaning..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            className="form-control"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.displayName}
+              </option>
+            ))}
+          </select>
+          <select
+            className="form-control"
+            value={bookFilter}
+            onChange={(e) => setBookFilter(e.target.value)}
+          >
+            <option value="">All Books</option>
+            {bookOptions.map((book) => (
+              <option key={book} value={book}>{book}</option>
+            ))}
+          </select>
+          {(search || categoryFilter || bookFilter) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => { setSearch(''); setCategoryFilter(''); setBookFilter('') }}
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {isLoading && (
@@ -518,8 +614,7 @@ function Vocabulary() {
 
         {filteredWords.length === 0 && !isLoading ? (
           <div className="vocab-empty">
-            <h3>No words found</h3>
-            <p>Add your first Swedish word to start building your vocabulary.</p>
+            <p>No words found.</p>
             <button className="btn btn-primary" onClick={openAddForm}>
               + Add Word
             </button>
@@ -530,11 +625,10 @@ function Vocabulary() {
               <table className="vocab-table">
                 <thead>
                   <tr>
-                    <th>Swedish Word</th>
+                    <th>En/Ett</th>
+                    <th>Swedish</th>
                     <th>Meaning</th>
-                    <th>Present</th>
-                    <th>Past</th>
-                    <th>Future</th>
+                    <th>Book/Pg</th>
                     <th>Category</th>
                     <th>Actions</th>
                   </tr>
@@ -542,45 +636,17 @@ function Vocabulary() {
                 <tbody>
                   {pagedWords.map((w, index) => (
                     <tr key={w.id ?? index}>
+                      <td>{w.article ? <span className={`vocab-article-tag ${w.article}`}>{w.article}</span> : '—'}</td>
                       <td className="vocab-word-cell">{w.word}</td>
                       <td>{w.meaning}</td>
-                      <td className="vocab-tense-cell">
-                        {w.tenseDetails?.presentTense && (
-                          <>
-                            <strong>{w.tenseDetails.presentTense}</strong>
-                            {w.tenseDetails.presentExample && (
-                              <small>{w.tenseDetails.presentExample}</small>
-                            )}
-                          </>
-                        )}
-                      </td>
-                      <td className="vocab-tense-cell">
-                        {w.tenseDetails?.pastTense && (
-                          <>
-                            <strong>{w.tenseDetails.pastTense}</strong>
-                            {w.tenseDetails.pastExample && (
-                              <small>{w.tenseDetails.pastExample}</small>
-                            )}
-                          </>
-                        )}
-                      </td>
-                      <td className="vocab-tense-cell">
-                        {w.tenseDetails?.futureTense && (
-                          <>
-                            <strong>{w.tenseDetails.futureTense}</strong>
-                            {w.tenseDetails.futureExample && (
-                              <small>{w.tenseDetails.futureExample}</small>
-                            )}
-                          </>
-                        )}
-                      </td>
+                      <td className="vocab-book-cell">{w.book ? `${w.book}${w.page ? ' / p.' + w.page : ''}` : '—'}</td>
                       <td>
                         <span className="vocab-badge">{getCategoryDisplay(w.category)}</span>
                       </td>
                       <td className="vocab-actions">
                         <button
                           className="btn btn-sm btn-info"
-                          title="Edit comment"
+                          title="Comment"
                           onClick={() => openCommentPopup(w)}
                         >
                           💬
