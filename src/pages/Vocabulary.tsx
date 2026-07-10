@@ -167,7 +167,19 @@ function Vocabulary() {
     }
 
     // If tense is hidden, don't send tense data
-    const wordToSave = showTense ? formWord : { ...formWord, tenseDetails: null }
+    const baseWord = showTense ? formWord : { ...formWord, tenseDetails: null }
+
+    // Convert word to camelCase (capitalize first letter of each word), skip if all caps (e.g. ATM)
+    const toCamelCase = (str: string) =>
+      str.trim().split(/\s+/).map(w =>
+        w === w.toUpperCase() ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+      ).join(' ')
+
+    const wordToSave = {
+      ...baseWord,
+      word: toCamelCase(baseWord.word),
+      meaning: toCamelCase(baseWord.meaning),
+    }
 
     setIsLoading(true)
     try {
@@ -348,12 +360,6 @@ function Vocabulary() {
         <section className="card vocab-form-section">
           <div className="vocab-form-header">
             <h2>{isEditing ? '✏️ Edit Word' : '➕ Add New Word'}</h2>
-            <div className="vocab-form-header-actions">
-              <button className="btn btn-primary btn-sm" onClick={saveWord} disabled={isLoading}>
-                {isEditing ? '✓ Update' : '✓ Save'}
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={closeForm}>✕ Cancel</button>
-            </div>
           </div>
 
           <div className="vocab-form-grid-3">
@@ -427,6 +433,13 @@ function Vocabulary() {
                 None
               </label>
             </div>
+          </div>
+
+          <div className="vocab-form-actions">
+            <button className="btn btn-primary" onClick={saveWord} disabled={isLoading}>
+              {isEditing ? '✓ Update' : '✓ Save'}
+            </button>
+            <button className="btn btn-secondary" onClick={closeForm}>✕ Cancel</button>
           </div>
 
           <div className="vocab-form-grid-2">
@@ -557,6 +570,7 @@ function Vocabulary() {
       )}
 
       {/* FILTER + LIST */}
+      {!showForm && (
       <section className="card vocab-list-section">
         <div className="vocab-list-header">
           <h2>📖 Vocabulary List</h2>
@@ -706,6 +720,7 @@ function Vocabulary() {
           </>
         )}
       </section>
+      )}
     </div>
   )
 }
