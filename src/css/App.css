@@ -182,3 +182,83 @@
     border-right-color: var(--border);
   }
 }
+
+
+/* Expense Auth */
+.expense-auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 20px;
+}
+
+.expense-auth-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+.expense-auth-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.expense-auth-card h2 {
+  margin: 0 0 8px;
+  color: var(--text-h);
+  font-size: 20px;
+}
+
+.expense-auth-card p {
+  margin: 0 0 20px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.expense-auth-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-size: 20px;
+  text-align: center;
+  letter-spacing: 8px;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+
+.expense-auth-input:focus {
+  border-color: var(--accent);
+}
+
+.expense-auth-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.expense-auth-btn {
+  width: 100%;
+  padding: 12px;
+  background: #059669;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.expense-auth-btn:hover {
+  background: #047857;
+}

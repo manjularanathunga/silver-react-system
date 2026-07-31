@@ -4,7 +4,8 @@ import '../css/Expenses.css'
 interface ExpenseCategory {
   id: number | null
   name: string
-  type: 'expense' | 'loan'
+  type: 'income' | 'salary' | 'expense' | 'payment' | 'autogiro' | 'transfer' | 'loan'
+  mappingText: string
 }
 
 interface ExpenseEntry {
@@ -17,16 +18,10 @@ interface ExpenseEntry {
   type: 'expense' | 'loan'
 }
 
-interface SalaryRecord {
-  id: number | null
-  month: string
-  salary: number
-}
-
 const API_BASE = '/api/expenses'
 
 function getEmptyCategory(): ExpenseCategory {
-  return { id: null, name: '', type: 'expense' }
+  return { id: null, name: '', type: 'expense', mappingText: '' }
 }
 
 function getEmptyEntry(): ExpenseEntry {
@@ -39,9 +34,7 @@ function getCurrentMonth(): string {
 }
 
 function Expenses() {
-  // Salary
-  const [salaryRecord, setSalaryRecord] = useState<SalaryRecord>({ id: null, month: getCurrentMonth(), salary: 0 })
-  const [salaryInput, setSalaryInput] = useState('')
+  // Month
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth())
 
   // Categories
@@ -68,7 +61,15 @@ function Expenses() {
   const [deleteToDate, setDeleteToDate] = useState('')
 
   // Filter
-  const [filterCategory, setFilterCategory] = useState('')
+  const [filterCategories, setFilterCategories] = useState<string[]>([])
+  const [filterType, setFilterType] = useState('')
+  const [filterSearch, setFilterSearch] = useState('')
+
+  // Pagination
+  const [overviewPage, setOverviewPage] = useState(1)
+  const [expensePage, setExpensePage] = useState(1)
+  const [loanPage, setLoanPage] = useState(1)
+  const EXP_PAGE_SIZE = 10
 
   // UI
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'loans' | 'categories' | 'upload'>('overview')
@@ -103,50 +104,8 @@ function Expenses() {
     }
   }, [selectedMonth])
 
-  const loadSalary = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE}/salary/get?month=${selectedMonth}`)
-      if (!response.ok) throw new Error('API error')
-      const data = await response.json()
-      const record = data.data || data
-      if (record && record.salary) {
-        setSalaryRecord(record)
-        setSalaryInput(String(record.salary))
-      } else {
-        setSalaryRecord({ id: null, month: selectedMonth, salary: 0 })
-        setSalaryInput('')
-      }
-    } catch {
-      setSalaryRecord({ id: null, month: selectedMonth, salary: 0 })
-      setSalaryInput('')
-    }
-  }, [selectedMonth])
-
   useEffect(() => { loadCategories() }, [loadCategories])
   useEffect(() => { loadEntries() }, [loadEntries])
-  useEffect(() => { loadSalary() }, [loadSalary])
-
-  // Salary save
-  const saveSalary = async () => {
-    clearMessages()
-    const amount = parseFloat(salaryInput)
-    if (!amount || amount <= 0) { showError('Enter a valid salary amount'); return }
-    setIsLoading(true)
-    try {
-      const response = await fetch(`${API_BASE}/salary/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...salaryRecord, month: selectedMonth, salary: amount }),
-      })
-      if (!response.ok) throw new Error('Save failed')
-      showSuccess('Salary saved')
-      loadSalary()
-    } catch {
-      showError('Failed to save salary')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   // Category CRUD
   const openAddCategory = () => {
@@ -337,8 +296,13 @@ function Expenses() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Upload failed')
 
-      setUploadResult({ success: true, message: data.message || 'CSV uploaded successfully', count: data.count })
-      showSuccess(data.message || 'CSV uploaded and expenses updated')
+      // After upload, trigger recategorize
+      const recatResponse = await fetch(`${API_BASE}/entries/recategorize?month=${selectedMonth}`, { method: 'POST' })
+      const recatData = await recatResponse.json()
+      const recatMsg = recatResponse.ok ? ` → ${recatData.message || `Recategorized ${recatData.data} entries`}` : ''
+
+      setUploadResult({ success: true, message: (data.message || 'CSV uploaded') + recatMsg, count: data.count })
+      showSuccess((data.message || 'CSV uploaded') + recatMsg)
       setCsvFile(null)
       setCsvPreview([])
       setShowPreview(false)
@@ -356,22 +320,66 @@ function Expenses() {
     }
   }
 
-  // Calculations
-  const totalExpenses = entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0)
-  const totalLoans = entries.filter(e => e.type === 'loan').reduce((sum, e) => sum + e.amount, 0)
-  const totalDeductions = totalExpenses + totalLoans
-  const remaining = salaryRecord.salary - totalDeductions
+  const recategorize = async () => {
+    clearMessages()
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${API_BASE}/entries/recategorize?month=${selectedMonth}`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Recategorize failed')
+      showSuccess(data.message || `Recategorized ${data.data} entries`)
+      loadEntries()
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to recategorize')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-  const expenseEntries = entries.filter(e => e.type === 'expense')
-  const loanEntries = entries.filter(e => e.type === 'loan')
+  // Calculations — salary/income types are earnings, transfers excluded, rest are deductions
+  const earningTypes = ['salary', 'income']
+  const deductionTypes = ['expense', 'payment', 'autogiro', 'loan']
+  const excludeTypes = ['transfer']
+
+  const earningCategories = categories.filter(c => earningTypes.includes(c.type)).map(c => c.name)
+  const transferCategories = categories.filter(c => excludeTypes.includes(c.type)).map(c => c.name)
+
+  const salary = entries.filter(e => earningCategories.includes(e.categoryName) || e.description?.toLowerCase().includes('lön')).reduce((sum, e) => sum + e.amount, 0)
+  const isTransferEntry = (e: ExpenseEntry) => transferCategories.includes(e.categoryName) || e.description?.toLowerCase().includes('överföring')
+  const totalExpenses = entries.filter(e => (e.type === 'expense' || e.type === 'loan') && !earningCategories.includes(e.categoryName) && !isTransferEntry(e) && !e.description?.toLowerCase().includes('lön')).reduce((sum, e) => sum + e.amount, 0)
+  const totalLoans = entries.filter(e => e.type === 'loan' && !isTransferEntry(e)).reduce((sum, e) => sum + e.amount, 0)
+  const totalDeductions = totalExpenses + totalLoans
+  const remaining = salary - totalDeductions
+
+  const expenseEntries = entries.filter(e => (e.type === 'expense' || e.type === 'loan') && !earningCategories.includes(e.categoryName) && !isTransferEntry(e) && !e.description?.toLowerCase().includes('lön'))
+  const loanEntries = entries.filter(e => e.type === 'loan' && !isTransferEntry(e))
   const expenseCategories = categories.filter(c => c.type === 'expense')
   const loanCategories = categories.filter(c => c.type === 'loan')
+  const transferCats = categories.filter(c => c.type === 'transfer')
+  const salaryCats = categories.filter(c => c.type === 'salary')
+  const incomeCats = categories.filter(c => c.type === 'income')
+  const paymentCats = categories.filter(c => c.type === 'payment')
+  const autogiroCats = categories.filter(c => c.type === 'autogiro')
 
   // Filtered entries for overview
-  const filteredEntries = filterCategory
-    ? entries.filter(e => e.categoryName === filterCategory)
-    : entries
+  const filteredEntries = entries.filter(e => {
+    if (filterCategories.length > 0 && !filterCategories.includes('__none__') && !filterCategories.includes(e.categoryName)) return false
+    if (filterCategories.includes('__none__')) return false
+    if (filterType && e.type !== filterType) return false
+    if (filterSearch && !e.description?.toLowerCase().includes(filterSearch.toLowerCase())) return false
+    return true
+  })
   const filteredTotal = filteredEntries.reduce((sum, e) => sum + e.amount, 0)
+
+  // Pagination calculations
+  const overviewTotalPages = Math.ceil(filteredEntries.length / EXP_PAGE_SIZE) || 1
+  const pagedOverview = filteredEntries.slice((overviewPage - 1) * EXP_PAGE_SIZE, overviewPage * EXP_PAGE_SIZE)
+
+  const expenseTotalPages = Math.ceil(expenseEntries.length / EXP_PAGE_SIZE) || 1
+  const pagedExpenses = expenseEntries.slice((expensePage - 1) * EXP_PAGE_SIZE, expensePage * EXP_PAGE_SIZE)
+
+  const loanTotalPages = Math.ceil(loanEntries.length / EXP_PAGE_SIZE) || 1
+  const pagedLoans = loanEntries.slice((loanPage - 1) * EXP_PAGE_SIZE, loanPage * EXP_PAGE_SIZE)
 
   return (
     <div className="expenses-container">
@@ -389,7 +397,7 @@ function Expenses() {
       <div className="exp-hero">
         <div>
           <h1>💰 Daily Expenses</h1>
-          <p className="exp-subtitle">Track salary, expenses, and loan settlements.</p>
+          <p className="exp-subtitle">Track expenses and loan settlements.</p>
         </div>
         <div className="exp-month-picker">
           <label>Month:</label>
@@ -397,42 +405,28 @@ function Expenses() {
         </div>
       </div>
 
-      {/* SALARY SECTION */}
+      {/* SUMMARY CARDS */}
       <section className="card exp-salary-section">
-        <div className="exp-salary-header">
-          <h2>📊 Salary & Balance</h2>
-        </div>
-        <div className="exp-salary-grid">
-          <div className="form-group">
-            <label>Monthly Salary</label>
-            <div className="exp-salary-input-row">
-              <input
-                type="number"
-                className="form-control"
-                placeholder="Enter salary"
-                value={salaryInput}
-                onChange={e => setSalaryInput(e.target.value)}
-              />
-              <button className="btn btn-primary btn-sm" onClick={saveSalary} disabled={isLoading}>Save</button>
-            </div>
+        <div className="exp-summary-cards">
+          <div className="exp-summary-card exp-card-salary">
+            <span className="exp-card-label">Salary/Income</span>
+            <span className="exp-card-value">{salary.toLocaleString()} SEK</span>
           </div>
-          <div className="exp-summary-cards">
-            <div className="exp-summary-card exp-card-salary">
-              <span className="exp-card-label">Salary</span>
-              <span className="exp-card-value">₹{salaryRecord.salary.toLocaleString()}</span>
-            </div>
-            <div className="exp-summary-card exp-card-expense">
-              <span className="exp-card-label">Expenses</span>
-              <span className="exp-card-value">₹{totalExpenses.toLocaleString()}</span>
-            </div>
-            <div className="exp-summary-card exp-card-loan">
-              <span className="exp-card-label">Loan/Lean</span>
-              <span className="exp-card-value">₹{totalLoans.toLocaleString()}</span>
-            </div>
-            <div className={`exp-summary-card ${remaining >= 0 ? 'exp-card-remaining' : 'exp-card-negative'}`}>
-              <span className="exp-card-label">Remaining</span>
-              <span className="exp-card-value">₹{remaining.toLocaleString()}</span>
-            </div>
+          <div className="exp-summary-card exp-card-expense">
+            <span className="exp-card-label">Expenses</span>
+            <span className="exp-card-value">{totalExpenses.toLocaleString()} SEK</span>
+          </div>
+          <div className="exp-summary-card exp-card-loan">
+            <span className="exp-card-label">Loan/Lean</span>
+            <span className="exp-card-value">{totalLoans.toLocaleString()} SEK</span>
+          </div>
+          <div className="exp-summary-card exp-card-total">
+            <span className="exp-card-label">Monthly Total</span>
+            <span className="exp-card-value">{totalDeductions.toLocaleString()} SEK</span>
+          </div>
+          <div className={`exp-summary-card ${remaining >= 0 ? 'exp-card-remaining' : 'exp-card-negative'}`}>
+            <span className="exp-card-label">Remaining</span>
+            <span className="exp-card-value">{remaining.toLocaleString()} SEK</span>
           </div>
         </div>
       </section>
@@ -451,15 +445,61 @@ function Expenses() {
         <section className="card exp-tab-content">
           <div className="exp-tab-header">
             <h3>Monthly Breakdown</h3>
-            <div className="exp-filter-row">
-              <select className="form-control" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-                <option value="">All Categories</option>
-                {[...new Set(entries.map(e => e.categoryName))].filter(Boolean).map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              {filterCategory && <button className="btn btn-sm btn-secondary" onClick={() => setFilterCategory('')}>Clear</button>}
+            <div className="exp-tab-header-actions">
+              <button className="btn btn-sm btn-secondary" onClick={loadEntries} disabled={isLoading}>🔄 Reload</button>
+              <button className="btn btn-sm btn-info" onClick={recategorize} disabled={isLoading} title="Re-assign categories based on mapping text">🏷️ Recategorize</button>
             </div>
+          </div>
+
+          <div className="exp-filter-bar">
+            <input type="text" className="form-control" placeholder="🔍 Search description..." value={filterSearch} onChange={e => setFilterSearch(e.target.value)} />
+            <div className="exp-cat-filter-dropdown">
+              <button className="btn btn-sm btn-secondary exp-cat-filter-btn" onClick={() => {
+                const el = document.getElementById('exp-cat-dropdown')
+                if (el) el.classList.toggle('open')
+              }}>
+                📂 Categories ({filterCategories.length === 0 ? 'All' : filterCategories.length})
+              </button>
+              <div id="exp-cat-dropdown" className="exp-cat-dropdown">
+                <div className="exp-cat-check-actions">
+                  <button className="exp-cat-action-btn" onClick={() => setFilterCategories([])}>✓ Select All</button>
+                  <button className="exp-cat-action-btn" onClick={() => setFilterCategories(['__none__'])}>✕ Unselect All</button>
+                </div>
+                {[...new Set(entries.map(e => e.categoryName))].filter(Boolean).sort().map(cat => (
+                  <label key={cat} className="exp-cat-check-item">
+                    <input type="checkbox" checked={filterCategories.length === 0 || (filterCategories.includes(cat) && !filterCategories.includes('__none__'))} onChange={() => {
+                      if (filterCategories.includes('__none__')) {
+                        // Was unselect all, now select only this one
+                        setFilterCategories([cat])
+                      } else if (filterCategories.length === 0) {
+                        // Was "all", now deselect this one
+                        const allCats = [...new Set(entries.map(e => e.categoryName))].filter(Boolean).filter(c => c !== cat)
+                        setFilterCategories(allCats)
+                      } else if (filterCategories.includes(cat)) {
+                        const newList = filterCategories.filter(c => c !== cat)
+                        setFilterCategories(newList.length === 0 ? ['__none__'] : newList)
+                      } else {
+                        setFilterCategories([...filterCategories, cat])
+                      }
+                    }} />
+                    <span>{cat}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <select className="form-control" value={filterType} onChange={e => setFilterType(e.target.value)}>
+              <option value="">All Types</option>
+              <option value="expense">Expense</option>
+              <option value="loan">Loan</option>
+              <option value="income">Income</option>
+              <option value="salary">Salary</option>
+              <option value="payment">Payment</option>
+              <option value="autogiro">Autogiro</option>
+              <option value="transfer">Transfer</option>
+            </select>
+            {(filterCategories.length > 0 || filterType || filterSearch) && (
+              <button className="btn btn-sm btn-secondary" onClick={() => { setFilterCategories([]); setFilterType(''); setFilterSearch('') }}>Clear</button>
+            )}
           </div>
 
           {/* Delete by date range */}
@@ -481,7 +521,7 @@ function Expenses() {
           </div>
 
           {filteredEntries.length === 0 ? (
-            <p className="exp-empty">{filterCategory ? `No entries for "${filterCategory}" this month.` : 'No entries for this month yet.'}</p>
+            <p className="exp-empty">{filterCategories.length > 0 ? `No entries for selected categories this month.` : 'No entries for this month yet.'}</p>
           ) : (
             <div className="table-wrapper">
               <table className="exp-table">
@@ -495,23 +535,30 @@ function Expenses() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEntries.map((entry, i) => (
+                  {pagedOverview.map((entry, i) => (
                     <tr key={entry.id ?? i} className={deleteFromDate && deleteToDate && entry.date >= deleteFromDate && entry.date <= deleteToDate ? 'exp-row-marked' : ''}>
                       <td className="exp-date-cell">{entry.date}</td>
                       <td><span className={`exp-type-badge ${entry.type}`}>{entry.type === 'expense' ? 'Expense' : 'Loan'}</span></td>
                       <td>{entry.categoryName}</td>
                       <td>{entry.description}</td>
-                      <td className="exp-amount-cell">₹{entry.amount.toLocaleString()}</td>
+                      <td className="exp-amount-cell">{entry.amount.toLocaleString()} SEK</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={4}><strong>{filterCategory ? `Total (${filterCategory})` : 'Total Deductions'}</strong></td>
-                    <td className="exp-amount-cell"><strong>₹{filteredTotal.toLocaleString()}</strong></td>
+                    <td colSpan={4}><strong>{filterCategories.length > 0 ? `Total (${filterCategories.join(', ')})` : 'Total Deductions'}</strong></td>
+                    <td className="exp-amount-cell"><strong>{filteredTotal.toLocaleString()} SEK</strong></td>
                   </tr>
                 </tfoot>
               </table>
+              {overviewTotalPages > 1 && (
+                <div className="exp-pagination">
+                  <button className="exp-page-btn" onClick={() => setOverviewPage(p => Math.max(1, p - 1))} disabled={overviewPage === 1}>← Prev</button>
+                  <span className="exp-page-info">Page {overviewPage} of {overviewTotalPages} ({filteredEntries.length} entries)</span>
+                  <button className="exp-page-btn" onClick={() => setOverviewPage(p => Math.min(overviewTotalPages, p + 1))} disabled={overviewPage === overviewTotalPages}>Next →</button>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -539,12 +586,12 @@ function Expenses() {
                   </tr>
                 </thead>
                 <tbody>
-                  {expenseEntries.map((entry, i) => (
+                  {pagedExpenses.map((entry, i) => (
                     <tr key={entry.id ?? i}>
                       <td className="exp-date-cell">{entry.date}</td>
                       <td>{entry.categoryName}</td>
                       <td>{entry.description}</td>
-                      <td className="exp-amount-cell">₹{entry.amount.toLocaleString()}</td>
+                      <td className="exp-amount-cell">{entry.amount.toLocaleString()} SEK</td>
                       <td className="exp-actions">
                         <button className="btn btn-sm btn-warning" onClick={() => openEditEntry(entry)}>Edit</button>
                         <button className="btn btn-sm btn-danger" onClick={() => deleteEntry(entry)}>Del</button>
@@ -555,11 +602,18 @@ function Expenses() {
                 <tfoot>
                   <tr>
                     <td colSpan={3}><strong>Total</strong></td>
-                    <td className="exp-amount-cell"><strong>₹{totalExpenses.toLocaleString()}</strong></td>
+                    <td className="exp-amount-cell"><strong>{totalExpenses.toLocaleString()} SEK</strong></td>
                     <td></td>
                   </tr>
                 </tfoot>
               </table>
+              {expenseTotalPages > 1 && (
+                <div className="exp-pagination">
+                  <button className="exp-page-btn" onClick={() => setExpensePage(p => Math.max(1, p - 1))} disabled={expensePage === 1}>← Prev</button>
+                  <span className="exp-page-info">Page {expensePage} of {expenseTotalPages} ({expenseEntries.length} entries)</span>
+                  <button className="exp-page-btn" onClick={() => setExpensePage(p => Math.min(expenseTotalPages, p + 1))} disabled={expensePage === expenseTotalPages}>Next →</button>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -587,12 +641,12 @@ function Expenses() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loanEntries.map((entry, i) => (
+                  {pagedLoans.map((entry, i) => (
                     <tr key={entry.id ?? i}>
                       <td className="exp-date-cell">{entry.date}</td>
                       <td>{entry.categoryName}</td>
                       <td>{entry.description}</td>
-                      <td className="exp-amount-cell">₹{entry.amount.toLocaleString()}</td>
+                      <td className="exp-amount-cell">{entry.amount.toLocaleString()} SEK</td>
                       <td className="exp-actions">
                         <button className="btn btn-sm btn-warning" onClick={() => openEditEntry(entry)}>Edit</button>
                         <button className="btn btn-sm btn-danger" onClick={() => deleteEntry(entry)}>Del</button>
@@ -603,11 +657,18 @@ function Expenses() {
                 <tfoot>
                   <tr>
                     <td colSpan={3}><strong>Total</strong></td>
-                    <td className="exp-amount-cell"><strong>₹{totalLoans.toLocaleString()}</strong></td>
+                    <td className="exp-amount-cell"><strong>{totalLoans.toLocaleString()} SEK</strong></td>
                     <td></td>
                   </tr>
                 </tfoot>
               </table>
+              {loanTotalPages > 1 && (
+                <div className="exp-pagination">
+                  <button className="exp-page-btn" onClick={() => setLoanPage(p => Math.max(1, p - 1))} disabled={loanPage === 1}>← Prev</button>
+                  <span className="exp-page-info">Page {loanPage} of {loanTotalPages} ({loanEntries.length} entries)</span>
+                  <button className="exp-page-btn" onClick={() => setLoanPage(p => Math.min(loanTotalPages, p + 1))} disabled={loanPage === loanTotalPages}>Next →</button>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -623,19 +684,29 @@ function Expenses() {
 
           {showCategoryForm && (
             <div className="exp-inline-form">
-              <div className="exp-inline-form-grid">
+              <div className="exp-cat-form-grid">
                 <div className="form-group">
                   <label>Category Name *</label>
-                  <input type="text" className="form-control" placeholder="e.g. Home, Electricity, Rent" value={formCategory.name} onChange={e => setFormCategory({ ...formCategory, name: e.target.value })} />
+                  <input type="text" className="form-control" placeholder="e.g. Groceries, Home Loan" value={formCategory.name} onChange={e => setFormCategory({ ...formCategory, name: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label>Type *</label>
-                  <select className="form-control" value={formCategory.type} onChange={e => setFormCategory({ ...formCategory, type: e.target.value as 'expense' | 'loan' })}>
+                  <select className="form-control" value={formCategory.type} onChange={e => setFormCategory({ ...formCategory, type: e.target.value as ExpenseCategory['type'] })}>
+                    <option value="income">Income</option>
+                    <option value="salary">Salary</option>
                     <option value="expense">Expense</option>
+                    <option value="payment">Payment</option>
+                    <option value="autogiro">Autogiro</option>
+                    <option value="transfer">Transfer</option>
                     <option value="loan">Loan / Lean</option>
                   </select>
                 </div>
+                <div className="form-group">
+                  <label>Mapping Text</label>
+                  <input type="text" className="form-control" placeholder="e.g. ICA, Överföring, Lön" value={formCategory.mappingText} onChange={e => setFormCategory({ ...formCategory, mappingText: e.target.value })} />
+                </div>
               </div>
+              <p className="exp-mapping-hint">Mapping text is used to auto-categorize entries from bank CSV imports.</p>
               <div className="exp-inline-form-actions">
                 <button className="btn btn-primary btn-sm" onClick={saveCategory} disabled={isLoading}>{isEditingCategory ? 'Update' : 'Save'}</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setShowCategoryForm(false)}>Cancel</button>
@@ -643,42 +714,160 @@ function Expenses() {
             </div>
           )}
 
-          <div className="exp-cat-section">
-            <h4>Expense Categories</h4>
-            {expenseCategories.length === 0 ? (
-              <p className="exp-empty">No expense categories yet.</p>
-            ) : (
-              <div className="exp-cat-list">
-                {expenseCategories.map(cat => (
-                  <div key={cat.id} className="exp-cat-item">
-                    <span className="exp-cat-name">{cat.name}</span>
-                    <div className="exp-cat-actions">
-                      <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
-                      <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+          <div className="exp-cat-grid">
+            <div className="exp-cat-section">
+              <h4><span className="exp-cat-type-icon income">📈</span> Income</h4>
+              {incomeCats.length === 0 ? (
+                <p className="exp-empty">No income categories.</p>
+              ) : (
+                <div className="exp-cat-list">
+                  {incomeCats.map(cat => (
+                    <div key={cat.id} className="exp-cat-item">
+                      <div className="exp-cat-info">
+                        <span className="exp-cat-name">{cat.name}</span>
+                        {cat.mappingText && <span className="exp-cat-mapping">↔ {cat.mappingText}</span>}
+                      </div>
+                      <div className="exp-cat-actions">
+                        <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="exp-cat-section">
-            <h4>Loan / Lean Categories</h4>
-            {loanCategories.length === 0 ? (
-              <p className="exp-empty">No loan categories yet.</p>
-            ) : (
-              <div className="exp-cat-list">
-                {loanCategories.map(cat => (
-                  <div key={cat.id} className="exp-cat-item">
-                    <span className="exp-cat-name">{cat.name}</span>
-                    <div className="exp-cat-actions">
-                      <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
-                      <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+            <div className="exp-cat-section">
+              <h4><span className="exp-cat-type-icon salary">💰</span> Salary</h4>
+              {salaryCats.length === 0 ? (
+                <p className="exp-empty">No salary categories.</p>
+              ) : (
+                <div className="exp-cat-list">
+                  {salaryCats.map(cat => (
+                    <div key={cat.id} className="exp-cat-item">
+                      <div className="exp-cat-info">
+                        <span className="exp-cat-name">{cat.name}</span>
+                        {cat.mappingText && <span className="exp-cat-mapping">↔ {cat.mappingText}</span>}
+                      </div>
+                      <div className="exp-cat-actions">
+                        <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="exp-cat-section">
+              <h4><span className="exp-cat-type-icon expense">💸</span> Expense</h4>
+              {expenseCategories.length === 0 ? (
+                <p className="exp-empty">No expense categories.</p>
+              ) : (
+                <div className="exp-cat-list">
+                  {expenseCategories.map(cat => (
+                    <div key={cat.id} className="exp-cat-item">
+                      <div className="exp-cat-info">
+                        <span className="exp-cat-name">{cat.name}</span>
+                        {cat.mappingText && <span className="exp-cat-mapping">↔ {cat.mappingText}</span>}
+                      </div>
+                      <div className="exp-cat-actions">
+                        <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="exp-cat-section">
+              <h4><span className="exp-cat-type-icon payment">💳</span> Payment</h4>
+              {paymentCats.length === 0 ? (
+                <p className="exp-empty">No payment categories.</p>
+              ) : (
+                <div className="exp-cat-list">
+                  {paymentCats.map(cat => (
+                    <div key={cat.id} className="exp-cat-item">
+                      <div className="exp-cat-info">
+                        <span className="exp-cat-name">{cat.name}</span>
+                        {cat.mappingText && <span className="exp-cat-mapping">↔ {cat.mappingText}</span>}
+                      </div>
+                      <div className="exp-cat-actions">
+                        <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="exp-cat-section">
+              <h4><span className="exp-cat-type-icon autogiro">🔁</span> Autogiro</h4>
+              {autogiroCats.length === 0 ? (
+                <p className="exp-empty">No autogiro categories.</p>
+              ) : (
+                <div className="exp-cat-list">
+                  {autogiroCats.map(cat => (
+                    <div key={cat.id} className="exp-cat-item">
+                      <div className="exp-cat-info">
+                        <span className="exp-cat-name">{cat.name}</span>
+                        {cat.mappingText && <span className="exp-cat-mapping">↔ {cat.mappingText}</span>}
+                      </div>
+                      <div className="exp-cat-actions">
+                        <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="exp-cat-section">
+              <h4><span className="exp-cat-type-icon transfer">🔄</span> Transfer</h4>
+              {transferCats.length === 0 ? (
+                <p className="exp-empty">No transfer categories.</p>
+              ) : (
+                <div className="exp-cat-list">
+                  {transferCats.map(cat => (
+                    <div key={cat.id} className="exp-cat-item">
+                      <div className="exp-cat-info">
+                        <span className="exp-cat-name">{cat.name}</span>
+                        {cat.mappingText && <span className="exp-cat-mapping">↔ {cat.mappingText}</span>}
+                      </div>
+                      <div className="exp-cat-actions">
+                        <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="exp-cat-section">
+              <h4><span className="exp-cat-type-icon loan">🏦</span> Loan / Lean</h4>
+              {loanCategories.length === 0 ? (
+                <p className="exp-empty">No loan categories.</p>
+              ) : (
+                <div className="exp-cat-list">
+                  {loanCategories.map(cat => (
+                    <div key={cat.id} className="exp-cat-item">
+                      <div className="exp-cat-info">
+                        <span className="exp-cat-name">{cat.name}</span>
+                        {cat.mappingText && <span className="exp-cat-mapping">↔ {cat.mappingText}</span>}
+                      </div>
+                      <div className="exp-cat-actions">
+                        <button className="btn btn-sm btn-warning" onClick={() => openEditCategory(cat)}>Edit</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteCategory(cat)}>Del</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}

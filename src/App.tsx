@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Navigation from './components/Navigation'
+import ExpenseAuth from './components/ExpenseAuth'
 import Home from './pages/Home'
 import Fields from './pages/Fields'
 import Ops from './pages/Ops'
@@ -27,7 +28,7 @@ function App() {
         <Route path="/vocabulary" element={<Vocabulary />} />
         <Route path="/errors" element={<ErrorTracker />} />
         <Route path="/releases" element={<Releases />} />
-        <Route path="/expenses" element={<Expenses />} />
+        <Route path="/expenses" element={<ExpenseAuth><Expenses /></ExpenseAuth>} />
         <Route path="/ex-systems" element={<ExSystems />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
