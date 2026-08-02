@@ -182,10 +182,20 @@
 
 .exp-type-badge.expense { background: #fff3e0; color: #e65100; }
 .exp-type-badge.loan { background: #e3f2fd; color: #0d47a1; }
+.exp-type-badge.income { background: #e8f5e9; color: #1b5e20; }
+.exp-type-badge.salary { background: #e8f5e9; color: #2e7d32; }
+.exp-type-badge.payment { background: #fce4ec; color: #880e4f; }
+.exp-type-badge.autogiro { background: #e0f7fa; color: #006064; }
+.exp-type-badge.transfer { background: #f3e5f5; color: #6a1b9a; }
 
 @media (prefers-color-scheme: dark) {
   .exp-type-badge.expense { background: #3a2a1a; color: #ffcc80; }
   .exp-type-badge.loan { background: #1a2a3a; color: #90caf9; }
+  .exp-type-badge.income { background: #1a3a1a; color: #a5d6a7; }
+  .exp-type-badge.salary { background: #1a3a1a; color: #a5d6a7; }
+  .exp-type-badge.payment { background: #3a1a2a; color: #f48fb1; }
+  .exp-type-badge.autogiro { background: #1a3a3a; color: #80deea; }
+  .exp-type-badge.transfer { background: #2a1a3a; color: #ce93d8; }
 }
 
 .exp-empty { text-align: center; padding: 20px; color: var(--text); font-style: italic; }

@@ -95,7 +95,10 @@ function Expenses() {
 
   const loadEntries = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/entries/list?month=${selectedMonth}`)
+      const url = selectedMonth
+        ? `${API_BASE}/entries/list?month=${selectedMonth}`
+        : `${API_BASE}/entries/list`
+      const response = await fetch(url)
       if (!response.ok) throw new Error('API error')
       const data = await response.json()
       setEntries(data.data || data || [])
@@ -106,6 +109,7 @@ function Expenses() {
 
   useEffect(() => { loadCategories() }, [loadCategories])
   useEffect(() => { loadEntries() }, [loadEntries])
+  useEffect(() => { setOverviewPage(1) }, [filterCategories, filterType, filterSearch])
 
   // Category CRUD
   const openAddCategory = () => {
@@ -363,8 +367,17 @@ function Expenses() {
 
   // Filtered entries for overview
   const filteredEntries = entries.filter(e => {
-    if (filterCategories.length > 0 && !filterCategories.includes('__none__') && !filterCategories.includes(e.categoryName)) return false
+    // Category filter: empty = show all, ['__none__'] = show nothing, otherwise match by category mappingText
     if (filterCategories.includes('__none__')) return false
+    if (filterCategories.length > 0) {
+      const selectedCats = categories.filter(c => filterCategories.includes(c.name))
+      const matchesCategory = selectedCats.some(cat => {
+        if (e.categoryName === cat.name) return true
+        if (cat.mappingText && e.description?.toLowerCase().includes(cat.mappingText.toLowerCase())) return true
+        return false
+      })
+      if (!matchesCategory) return false
+    }
     if (filterType && e.type !== filterType) return false
     if (filterSearch && !e.description?.toLowerCase().includes(filterSearch.toLowerCase())) return false
     return true
@@ -402,6 +415,7 @@ function Expenses() {
         <div className="exp-month-picker">
           <label>Month:</label>
           <input type="month" className="form-control" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
+          <button className={`btn btn-sm ${selectedMonth ? 'btn-secondary' : 'btn-primary'}`} onClick={() => setSelectedMonth('')}>All</button>
         </div>
       </div>
 
@@ -465,7 +479,7 @@ function Expenses() {
                   <button className="exp-cat-action-btn" onClick={() => setFilterCategories([])}>✓ Select All</button>
                   <button className="exp-cat-action-btn" onClick={() => setFilterCategories(['__none__'])}>✕ Unselect All</button>
                 </div>
-                {[...new Set(entries.map(e => e.categoryName))].filter(Boolean).sort().map(cat => (
+                {categories.map(c => c.name).sort().map(cat => (
                   <label key={cat} className="exp-cat-check-item">
                     <input type="checkbox" checked={filterCategories.length === 0 || (filterCategories.includes(cat) && !filterCategories.includes('__none__'))} onChange={() => {
                       if (filterCategories.includes('__none__')) {
@@ -538,7 +552,7 @@ function Expenses() {
                   {pagedOverview.map((entry, i) => (
                     <tr key={entry.id ?? i} className={deleteFromDate && deleteToDate && entry.date >= deleteFromDate && entry.date <= deleteToDate ? 'exp-row-marked' : ''}>
                       <td className="exp-date-cell">{entry.date}</td>
-                      <td><span className={`exp-type-badge ${entry.type}`}>{entry.type === 'expense' ? 'Expense' : 'Loan'}</span></td>
+                      <td><span className={`exp-type-badge ${entry.type}`}>{entry.type}</span></td>
                       <td>{entry.categoryName}</td>
                       <td>{entry.description}</td>
                       <td className="exp-amount-cell">{entry.amount.toLocaleString()} SEK</td>
