@@ -657,9 +657,6 @@ function Jira() {
                       </select>
                     </td>
                     <td className="action-cell">
-                      <button className="btn btn-sm btn-warning" onClick={() => editJira(task)}>
-                        Edit
-                      </button>
                       <button
                         className="btn btn-sm btn-info"
                         onClick={() => viewNotes(task)}
@@ -679,6 +676,9 @@ function Jira() {
                         disabled={isLoading}
                       >
                         Move Content
+                      </button>
+                      <button className="btn btn-sm btn-warning" onClick={() => editJira(task)}>
+                        Edit
                       </button>
                       {!task.showHideFlag ? (
                         <button
