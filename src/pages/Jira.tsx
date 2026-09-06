@@ -354,6 +354,45 @@ function Jira() {
     }
   }
 
+  const createFoldersForTask = async (task: JiraTask) => {
+    setIsLoading(true)
+    resetMessages()
+    try {
+      const response = await fetch('/api/jira/createFolders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task),
+      })
+      const data = await response.json()
+      if (!response.ok) throw { data }
+      setSuccessMessage(data.message)
+      loadJiraList()
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'Failed to create folder or file'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const moveContentForTask = async (task: JiraTask) => {
+    setIsLoading(true)
+    resetMessages()
+    try {
+      const response = await fetch('/api/jira/moveContent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task),
+      })
+      const data = await response.json()
+      if (!response.ok) throw { data }
+      setSuccessMessage(data.message)
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'Failed to move content'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const updateShowHideFlag = async (task: JiraTask, flag: boolean) => {
     const updated = { ...task, showHideFlag: flag }
     resetMessages()
@@ -529,6 +568,16 @@ function Jira() {
                 setCurrentPage(1)
               }}
             />
+            <button
+              className="btn btn-warning"
+              onClick={() => {
+                setSearchJiraId('')
+                setSearchTitle('')
+                setCurrentPage(1)
+              }}
+            >
+              Clear
+            </button>
           </div>
 
           <div className="current-view">
@@ -552,7 +601,7 @@ function Jira() {
                   <th>Status</th>
                   <th>Created</th>
                   <th>Priority</th>
-                  <th style={{ width: '260px' }}>Action</th>
+                  <th style={{ width: '460px' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -616,6 +665,20 @@ function Jira() {
                         onClick={() => viewNotes(task)}
                       >
                         Note
+                      </button>
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => createFoldersForTask(task)}
+                        disabled={isLoading}
+                      >
+                        Create Folders
+                      </button>
+                      <button
+                        className="btn btn-sm btn-info"
+                        onClick={() => moveContentForTask(task)}
+                        disabled={isLoading}
+                      >
+                        Move Content
                       </button>
                       {!task.showHideFlag ? (
                         <button
