@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Navigation from './components/Navigation'
 import ExpenseAuth from './components/ExpenseAuth'
 import Home from './pages/Home'
@@ -14,9 +15,37 @@ import Expenses from './pages/Expenses'
 import ExSystems from './pages/ExSystems'
 import './css/App.css'
 
+const BASE_TITLE = 'Silver'
+
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'Home',
+  '/fields': 'Fields',
+  '/ops': 'Ops',
+  '/soupReq': 'SOUP Req',
+  '/jira': 'Jira',
+  '/quickAccess': 'Quick Access',
+  '/vocabulary': 'Vocabulary',
+  '/errors': 'Errors',
+  '/releases': 'Releases',
+  '/expenses': 'Expenses',
+  '/ex-systems': 'ExSystems',
+}
+
+function PageTitle() {
+  const location = useLocation()
+
+  useEffect(() => {
+    const pageName = PAGE_TITLES[location.pathname]
+    document.title = pageName ? `${pageName} · ${BASE_TITLE}` : BASE_TITLE
+  }, [location.pathname])
+
+  return null
+}
+
 function App() {
   return (
     <>
+      <PageTitle />
       <Navigation />
       <Routes>
         <Route path="/" element={<Home />} />
