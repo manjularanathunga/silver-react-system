@@ -911,6 +911,12 @@ function Jira() {
                 <span className="notes-subtitle">{notesTask.title}</span>
               </div>
               <div className="card-header-actions">
+                <button className="btn btn-warning" onClick={saveNotes} disabled={isLoading}>
+                  Save Notes
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={backToList}>
+                  Back to List
+                </button>
                 <select
                   className="form-control form-control-sm notes-status-select"
                   value={notesTask.jiraStatus}
@@ -922,12 +928,6 @@ function Jira() {
                     </option>
                   ))}
                 </select>
-                <button className="btn btn-success" onClick={saveNotes} disabled={isLoading}>
-                  Save Notes
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={backToList}>
-                  Back to List
-                </button>
               </div>
             </div>
 
