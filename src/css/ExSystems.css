@@ -243,27 +243,116 @@
 
 .exsys-card-actions { display: flex; gap: 4px; }
 
+/* Notes tab toolbar */
+.exsys-notes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.exsys-notes-heading { display: flex; align-items: baseline; gap: 10px; }
+.exsys-notes-title { font-size: 16px; font-weight: 700; color: var(--text-h); }
+.exsys-notes-count {
+  font-size: 11px;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* Note form enhancements */
+.exsys-note-form { border-left: 3px solid var(--accent); }
+.exsys-note-form-header { margin-bottom: 10px; }
+.exsys-note-textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+.exsys-note-charcount {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+/* Empty state */
+.exsys-notes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  margin-top: 12px;
+}
+.exsys-notes-empty-icon { font-size: 34px; opacity: 0.8; }
+.exsys-notes-empty p { margin: 0; font-size: 13px; }
+
+/* Notes grid */
+.exsys-notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+  .exsys-notes-grid { grid-template-columns: 1fr; }
+}
+
 /* Note cards */
 .exsys-note-card {
+  display: flex;
+  flex-direction: column;
   padding: 14px;
   background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-top: 10px;
+  border-radius: 10px;
+  border-top: 3px solid var(--accent);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.exsys-note-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 
 .exsys-note-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
-.exsys-note-header strong { color: var(--text-h); font-size: 14px; }
+.exsys-note-header strong { color: var(--text-h); font-size: 14px; word-break: break-word; }
+
+.exsys-note-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.exsys-icon-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 3px 6px;
+  line-height: 1;
+  opacity: 0.75;
+  transition: all 0.15s;
+}
+.exsys-icon-btn:hover { opacity: 1; background: var(--accent-bg); border-color: var(--border); }
+.exsys-icon-btn-danger:hover { background: #4a1a1f; }
+
 .exsys-note-date { font-size: 11px; color: var(--text); }
 
 .exsys-note-content {
-  margin: 0;
+  margin: 0 0 10px;
   font-size: 13px;
   color: var(--text-h);
   white-space: pre-wrap;
@@ -272,7 +361,13 @@
   padding: 10px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  margin-bottom: 8px;
+  flex: 1;
+}
+
+.exsys-note-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
 }
 
 .exsys-empty { color: var(--text); font-style: italic; margin-top: 12px; font-size: 13px; }

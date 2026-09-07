@@ -13,6 +13,7 @@ interface JiraTask {
   readMeInfo: string
   showHideFlag: boolean
   priorityOngoing: number
+  completionPendingDate: string | null
 }
 
 const JIRA_STATUSES = [
@@ -22,6 +23,7 @@ const JIRA_STATUSES = [
   'Q',
   'R',
   'A',
+  'Testing',
   'P',
   'Done',
 ]
@@ -43,6 +45,7 @@ function getEmptyTask(): JiraTask {
     readMeInfo: '',
     showHideFlag: false,
     priorityOngoing: 1,
+    completionPendingDate: new Date().toISOString().split('T')[0],
   }
 }
 
@@ -59,6 +62,14 @@ function getErrorMessage(error: unknown, defaultMessage: string): string {
   return defaultMessage
 }
 
+function normalizeUrl(url: string): string {
+  const trimmed = (url || '').trim()
+  if (!trimmed) return ''
+  // If it already has a scheme (http://, https://, etc.), use as-is
+  if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
 function getRowClass(status: string): string {
   switch (status) {
     case 'Backlog':
@@ -73,6 +84,8 @@ function getRowClass(status: string): string {
       return 'row-r'
     case 'A':
       return 'row-a'
+    case 'Testing':
+      return 'row-testing'
     case 'P':
       return 'row-p'
     case 'Done':
@@ -95,6 +108,7 @@ function Jira() {
   const [notesTask, setNotesTask] = useState<JiraTask | null>(null)
   const [notesContent, setNotesContent] = useState('')
   const [showAllRecords, setShowAllRecords] = useState(false)
+  const [showCreatedColumn, setShowCreatedColumn] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
   const [searchJiraId, setSearchJiraId] = useState('')
@@ -537,6 +551,12 @@ function Jira() {
               <button className="btn btn-outline-success" onClick={showOnlyUnhiddenItems}>
                 Show Only Unhidden
               </button>
+              <button
+                className="btn btn-outline-secondary"
+                onClick={() => setShowCreatedColumn((v) => !v)}
+              >
+                {showCreatedColumn ? 'Hide Created' : 'Show Created'}
+              </button>
               <button className="btn btn-secondary" onClick={loadJiraList}>
                 Reload List
               </button>
@@ -599,8 +619,9 @@ function Jira() {
                   <th>JIRA ID</th>
                   <th>Title</th>
                   <th>Status</th>
-                  <th>Created</th>
+                  {showCreatedColumn && <th>Created</th>}
                   <th>Priority</th>
+                  <th>Completion Pending</th>
                   <th style={{ width: '460px' }}>Action</th>
                 </tr>
               </thead>
@@ -616,7 +637,20 @@ function Jira() {
                         {task.jiraId}
                       </span>
                     </td>
-                    <td>{task.title}</td>
+                    <td>
+                      {task.jiraLink ? (
+                        <a
+                          href={normalizeUrl(task.jiraLink)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="jira-title-link"
+                        >
+                          {task.title}
+                        </a>
+                      ) : (
+                        task.title
+                      )}
+                    </td>
                     <td>
                       <select
                         className="form-control form-control-sm"
@@ -636,7 +670,7 @@ function Jira() {
                         ))}
                       </select>
                     </td>
-                    <td>{task.createdDate}</td>
+                    {showCreatedColumn && <td>{task.createdDate}</td>}
                     <td>
                       <select
                         className="form-control form-control-sm"
@@ -655,6 +689,21 @@ function Jira() {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        style={{ width: '150px' }}
+                        value={task.completionPendingDate || ''}
+                        onChange={(e) => {
+                          const updated = { ...task, completionPendingDate: e.target.value || null }
+                          setJiraTasks((prev) =>
+                            prev.map((t) => (t.jiraId === task.jiraId ? updated : t))
+                          )
+                          updateJiraPriority(updated)
+                        }}
+                      />
                     </td>
                     <td className="action-cell">
                       <button
@@ -700,7 +749,7 @@ function Jira() {
                 ))}
                 {visibleTasks.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan={6} className="text-center">
+                    <td colSpan={showCreatedColumn ? 7 : 6} className="text-center">
                       No JIRA tasks found
                     </td>
                   </tr>

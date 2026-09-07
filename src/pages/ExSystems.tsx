@@ -49,6 +49,21 @@ function getEmptyLocation(): SearchLocation {
   return { countryName: '', countryCode: '', cityName: '', cityCode: '' }
 }
 
+function formatLocation(loc: SearchLocation): string {
+  const withCode = (name: string, code: string) => {
+    const n = (name || '').trim()
+    const c = (code || '').trim()
+    if (n && c) return `${n} (${c})`
+    if (n) return n
+    if (c) return c
+    return ''
+  }
+  const city = withCode(loc.cityName, loc.cityCode)
+  const country = withCode(loc.countryName, loc.countryCode)
+  const parts = [country, city].filter(Boolean)
+  return parts.length ? parts.join(', ') : '—'
+}
+
 function getEmptySearchCriteria(systemId: number | null): SearchCriteria {
   return { id: null, systemId, from: getEmptyLocation(), to: getEmptyLocation(), date: '' }
 }
@@ -95,7 +110,7 @@ function ExSystems() {
   const [isEditingNote, setIsEditingNote] = useState(false)
 
   // Active tab for selected system
-  const [activeTab, setActiveTab] = useState<'search' | 'logic' | 'notes'>('search')
+  const [activeTab, setActiveTab] = useState<'search' | 'logic' | 'notes'>('notes')
 
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -361,7 +376,7 @@ function ExSystems() {
           <h1>🖥️ External Systems</h1>
           <p className="exsys-subtitle">Notes, search criteria, and logic for external systems.</p>
         </div>
-        <button className="btn btn-primary" onClick={openAddSystem}>+ Add System</button>
+        <button className="btn btn-primary" onClick={openAddSystem} disabled={showSystemForm || isLoading}>+ Add System</button>
       </div>
 
       {/* SYSTEM FORM */}
@@ -439,21 +454,21 @@ function ExSystems() {
 
               {/* TABS */}
               <div className="exsys-tabs">
-                <button className={`exsys-tab ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>
-                  Search Criteria ({selectedSystem.searchCriterias?.length || 0})
+                <button className={`exsys-tab ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>
+                  Notes ({selectedSystem.notes?.length || 0})
                 </button>
                 <button className={`exsys-tab ${activeTab === 'logic' ? 'active' : ''}`} onClick={() => setActiveTab('logic')}>
                   Logic Notes ({selectedSystem.logicNotes?.length || 0})
                 </button>
-                <button className={`exsys-tab ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>
-                  Notes ({selectedSystem.notes?.length || 0})
+                <button className={`exsys-tab ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>
+                  Search Criteria ({selectedSystem.searchCriterias?.length || 0})
                 </button>
               </div>
 
               {/* SEARCH CRITERIA TAB */}
               {activeTab === 'search' && (
                 <div className="exsys-tab-content">
-                  <button className="btn btn-primary btn-sm" onClick={openAddSearch}>+ Add Search Criteria</button>
+                  <button className="btn btn-primary btn-sm" onClick={openAddSearch} disabled={showSearchForm || isLoading}>+ Add Search Criteria</button>
 
                   {showSearchForm && (
                     <div className="exsys-sub-form">
@@ -496,8 +511,8 @@ function ExSystems() {
                   {selectedSystem.searchCriterias?.map((sc, i) => (
                     <div key={sc.id ?? i} className="exsys-card">
                       <div className="exsys-card-row">
-                        <span><strong>From:</strong> {sc.from.cityName || sc.from.countryName} ({sc.from.cityCode || sc.from.countryCode})</span>
-                        <span><strong>To:</strong> {sc.to.cityName || sc.to.countryName} ({sc.to.cityCode || sc.to.countryCode})</span>
+                        <span><strong>From:</strong> {formatLocation(sc.from)}</span>
+                        <span><strong>To:</strong> {formatLocation(sc.to)}</span>
                         {sc.date && <span><strong>Date:</strong> {sc.date}</span>}
                       </div>
                       <div className="exsys-card-actions">
@@ -512,86 +527,118 @@ function ExSystems() {
               {/* LOGIC NOTES TAB */}
               {activeTab === 'logic' && (
                 <div className="exsys-tab-content">
-                  <button className="btn btn-primary btn-sm" onClick={openAddLogicNote}>+ Add Logic Note</button>
+                  <div className="exsys-notes-toolbar">
+                    <div className="exsys-notes-heading">
+                      <span className="exsys-notes-title">🧠 Logic Notes</span>
+                      <span className="exsys-notes-count">{selectedSystem.logicNotes?.length || 0} saved</span>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={openAddLogicNote} disabled={showLogicNoteForm || isLoading}>+ Add Logic Note</button>
+                  </div>
 
                   {showLogicNoteForm && (
-                    <div className="exsys-sub-form">
-                      <h4>{isEditingLogicNote ? 'Edit' : 'New'} Logic Note</h4>
+                    <div className="exsys-sub-form exsys-note-form">
+                      <div className="exsys-note-form-header">
+                        <h4>{isEditingLogicNote ? '✏️ Edit Logic Note' : '➕ New Logic Note'}</h4>
+                      </div>
                       <div className="form-group">
                         <label>Title *</label>
-                        <input type="text" className="form-control" placeholder="Logic title" value={formLogicNote.title} onChange={e => setFormLogicNote({ ...formLogicNote, title: e.target.value })} />
+                        <input type="text" className="form-control" placeholder="Give this logic note a short title" value={formLogicNote.title} autoFocus onChange={e => setFormLogicNote({ ...formLogicNote, title: e.target.value })} />
                       </div>
                       <div className="form-group">
                         <label>Content</label>
-                        <textarea className="form-control" rows={5} placeholder="Describe the logic..." value={formLogicNote.content} onChange={e => setFormLogicNote({ ...formLogicNote, content: e.target.value })} />
+                        <textarea className="form-control exsys-note-textarea" rows={6} placeholder="Describe the logic..." value={formLogicNote.content} onChange={e => setFormLogicNote({ ...formLogicNote, content: e.target.value })} />
+                        <span className="exsys-note-charcount">{formLogicNote.content.length} characters</span>
                       </div>
                       <div className="exsys-sub-form-actions">
-                        <button className="btn btn-primary btn-sm" onClick={saveLogicNote} disabled={isLoading}>{isEditingLogicNote ? 'Update' : 'Save'}</button>
+                        <button className="btn btn-primary btn-sm" onClick={saveLogicNote} disabled={isLoading || !formLogicNote.title.trim()}>{isEditingLogicNote ? '✓ Update' : '✓ Save'}</button>
                         <button className="btn btn-secondary btn-sm" onClick={() => setShowLogicNoteForm(false)}>Cancel</button>
                       </div>
                     </div>
                   )}
 
                   {(selectedSystem.logicNotes?.length || 0) === 0 && !showLogicNoteForm && (
-                    <p className="exsys-empty">No logic notes added yet.</p>
+                    <div className="exsys-notes-empty">
+                      <span className="exsys-notes-empty-icon">🗒️</span>
+                      <p>No logic notes yet. Click <strong>+ Add Logic Note</strong> to create your first one.</p>
+                    </div>
                   )}
 
-                  {selectedSystem.logicNotes?.map((note, i) => (
-                    <div key={note.id ?? i} className="exsys-note-card">
-                      <div className="exsys-note-header">
-                        <strong>{note.title}</strong>
-                        <span className="exsys-note-date">{note.createdAt}</span>
+                  <div className="exsys-notes-grid">
+                    {selectedSystem.logicNotes?.map((note, i) => (
+                      <div key={note.id ?? i} className="exsys-note-card">
+                        <div className="exsys-note-header">
+                          <strong>{note.title || 'Untitled'}</strong>
+                          <div className="exsys-note-card-actions">
+                            <button className="exsys-icon-btn" title="Edit logic note" onClick={() => openEditLogicNote(note)}>✏️</button>
+                            <button className="exsys-icon-btn exsys-icon-btn-danger" title="Delete logic note" onClick={() => deleteLogicNote(note)}>🗑️</button>
+                          </div>
+                        </div>
+                        {note.content && <p className="exsys-note-content">{note.content}</p>}
+                        <div className="exsys-note-footer">
+                          <span className="exsys-note-date">🕒 {note.createdAt}</span>
+                        </div>
                       </div>
-                      <p className="exsys-note-content">{note.content}</p>
-                      <div className="exsys-card-actions">
-                        <button className="btn btn-sm btn-warning" onClick={() => openEditLogicNote(note)}>Edit</button>
-                        <button className="btn btn-sm btn-danger" onClick={() => deleteLogicNote(note)}>Del</button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
 
               {/* NOTES TAB */}
               {activeTab === 'notes' && (
                 <div className="exsys-tab-content">
-                  <button className="btn btn-primary btn-sm" onClick={openAddNote}>+ Add Note</button>
+                  <div className="exsys-notes-toolbar">
+                    <div className="exsys-notes-heading">
+                      <span className="exsys-notes-title">📝 Notes</span>
+                      <span className="exsys-notes-count">{selectedSystem.notes?.length || 0} saved</span>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={openAddNote} disabled={showNoteForm || isLoading}>+ Add Note</button>
+                  </div>
 
                   {showNoteForm && (
-                    <div className="exsys-sub-form">
-                      <h4>{isEditingNote ? 'Edit' : 'New'} Note</h4>
+                    <div className="exsys-sub-form exsys-note-form">
+                      <div className="exsys-note-form-header">
+                        <h4>{isEditingNote ? '✏️ Edit Note' : '➕ New Note'}</h4>
+                      </div>
                       <div className="form-group">
                         <label>Title *</label>
-                        <input type="text" className="form-control" placeholder="Note title" value={formNote.title} onChange={e => setFormNote({ ...formNote, title: e.target.value })} />
+                        <input type="text" className="form-control" placeholder="Give this note a short title" value={formNote.title} autoFocus onChange={e => setFormNote({ ...formNote, title: e.target.value })} />
                       </div>
                       <div className="form-group">
                         <label>Content</label>
-                        <textarea className="form-control" rows={5} placeholder="Write your note..." value={formNote.content} onChange={e => setFormNote({ ...formNote, content: e.target.value })} />
+                        <textarea className="form-control exsys-note-textarea" rows={6} placeholder="Write your note..." value={formNote.content} onChange={e => setFormNote({ ...formNote, content: e.target.value })} />
+                        <span className="exsys-note-charcount">{formNote.content.length} characters</span>
                       </div>
                       <div className="exsys-sub-form-actions">
-                        <button className="btn btn-primary btn-sm" onClick={saveNote} disabled={isLoading}>{isEditingNote ? 'Update' : 'Save'}</button>
+                        <button className="btn btn-primary btn-sm" onClick={saveNote} disabled={isLoading || !formNote.title.trim()}>{isEditingNote ? '✓ Update' : '✓ Save'}</button>
                         <button className="btn btn-secondary btn-sm" onClick={() => setShowNoteForm(false)}>Cancel</button>
                       </div>
                     </div>
                   )}
 
                   {(selectedSystem.notes?.length || 0) === 0 && !showNoteForm && (
-                    <p className="exsys-empty">No notes added yet.</p>
+                    <div className="exsys-notes-empty">
+                      <span className="exsys-notes-empty-icon">🗒️</span>
+                      <p>No notes yet. Click <strong>+ Add Note</strong> to create your first one.</p>
+                    </div>
                   )}
 
-                  {selectedSystem.notes?.map((note, i) => (
-                    <div key={note.id ?? i} className="exsys-note-card">
-                      <div className="exsys-note-header">
-                        <strong>{note.title}</strong>
-                        <span className="exsys-note-date">{note.createdAt}</span>
+                  <div className="exsys-notes-grid">
+                    {selectedSystem.notes?.map((note, i) => (
+                      <div key={note.id ?? i} className="exsys-note-card">
+                        <div className="exsys-note-header">
+                          <strong>{note.title || 'Untitled'}</strong>
+                          <div className="exsys-note-card-actions">
+                            <button className="exsys-icon-btn" title="Edit note" onClick={() => openEditNote(note)}>✏️</button>
+                            <button className="exsys-icon-btn exsys-icon-btn-danger" title="Delete note" onClick={() => deleteNote(note)}>🗑️</button>
+                          </div>
+                        </div>
+                        {note.content && <p className="exsys-note-content">{note.content}</p>}
+                        <div className="exsys-note-footer">
+                          <span className="exsys-note-date">🕒 {note.createdAt}</span>
+                        </div>
                       </div>
-                      <p className="exsys-note-content">{note.content}</p>
-                      <div className="exsys-card-actions">
-                        <button className="btn btn-sm btn-warning" onClick={() => openEditNote(note)}>Edit</button>
-                        <button className="btn btn-sm btn-danger" onClick={() => deleteNote(note)}>Del</button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </>

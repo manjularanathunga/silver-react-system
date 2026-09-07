@@ -159,6 +159,43 @@ function SoupReq() {
     }
   }
 
+  const updateDatabase = async () => {
+    resetMessages()
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${PAGE_PATH}/updateDatabase`, { method: 'POST' })
+      const data = await response.text()
+      if (!response.ok) throw new Error(data || response.statusText)
+      setSuccessMessage(data || 'Database updated successfully')
+    } catch (error) {
+      setErrorMessage(
+        'Update Database failed: ' + (error instanceof Error ? error.message : 'Unknown error')
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const reCreateDatabase = async () => {
+    resetMessages()
+    if (!confirm('Re-Create Database will drop and rebuild the database. This cannot be undone. Continue?')) {
+      return
+    }
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${PAGE_PATH}/recreateDatabase`, { method: 'POST' })
+      const data = await response.text()
+      if (!response.ok) throw new Error(data || response.statusText)
+      setSuccessMessage(data || 'Database re-created successfully')
+    } catch (error) {
+      setErrorMessage(
+        'Re-Create Database failed: ' + (error instanceof Error ? error.message : 'Unknown error')
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const performSoupRequest = async (fileName: number) => {
     if (!fileName || !selectedUrl || !selectedHost) return
 
@@ -194,15 +231,20 @@ function SoupReq() {
     setSelectedUrl('')
     setSelectedType('')
     setFilterRecord('')
-    setUrlShowList(reqFileList)
+    setUrlShowList(sortByIdAscending(reqFileList))
     setShowContent(false)
   }
 
-  const onSelectChangeHost = (type: string) => {
+  // Filter the file list by the given type's description (empty = show all)
+  const applyTypeFilter = (typeName: string) => {
     let filtered = [...reqFileList]
 
-    if (type) {
-      filtered = filtered.filter((u) => getFileName(u.url).includes(type))
+    if (typeName) {
+      const selectedItem = typeList.find((item) => item.fileName === typeName)
+      const description = selectedItem?.description || ''
+      if (description) {
+        filtered = filtered.filter((u) => getFileName(u.url).includes(description))
+      }
     }
 
     setUrlShowList(sortByIdAscending(filtered))
@@ -210,18 +252,19 @@ function SoupReq() {
 
   const handleUrlChange = (value: string) => {
     setSelectedUrl(value)
-    onSelectChangeHost('')
+    // Keep the current type filter applied
+    applyTypeFilter(selectedType)
   }
 
   const handleHostChange = (value: string) => {
     setSelectedHost(value)
-    onSelectChangeHost('')
+    // Keep the current type filter applied
+    applyTypeFilter(selectedType)
   }
 
   const handleTypeChange = (value: string) => {
     setSelectedType(value)
-    const selectedItem = typeList.find((item) => item.fileName === value)
-    onSelectChangeHost(selectedItem?.description || '')
+    applyTypeFilter(value)
   }
 
   const openExtFile = (filename: string) => {
@@ -365,6 +408,12 @@ function SoupReq() {
               </button>
               <button className="btn btn-secondary" onClick={reloadFiles}>
                 Reload Files
+              </button>
+              <button className="btn btn-warning" onClick={updateDatabase} disabled={isLoading}>
+                Update Database
+              </button>
+              <button className="btn btn-danger" onClick={reCreateDatabase} disabled={isLoading}>
+                Re-Create Database
               </button>
             </div>
           </div>

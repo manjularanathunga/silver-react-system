@@ -57,6 +57,7 @@
 .row-q { background: rgba(13, 202, 240, 0.1); }
 .row-r { background: rgba(108, 117, 125, 0.08); }
 .row-a { background: rgba(25, 135, 84, 0.1); }
+.row-testing { background: rgba(111, 66, 193, 0.1); }
 .row-p { background: rgba(220, 53, 69, 0.08); }
 .row-done { background: rgba(220, 53, 69, 0.08); }
 
@@ -67,6 +68,7 @@
   .row-q { background: rgba(13, 202, 240, 0.08); }
   .row-r { background: rgba(108, 117, 125, 0.1); }
   .row-a { background: rgba(25, 135, 84, 0.08); }
+  .row-testing { background: rgba(111, 66, 193, 0.12); }
   .row-p { background: rgba(220, 53, 69, 0.1); }
   .row-done { background: rgba(220, 53, 69, 0.1); }
 }
@@ -79,6 +81,17 @@
 }
 
 .jira-id-copy:hover {
+  opacity: 0.8;
+}
+
+.jira-title-link {
+  cursor: pointer;
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.jira-title-link:hover {
   opacity: 0.8;
 }
 

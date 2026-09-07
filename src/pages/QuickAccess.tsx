@@ -4,6 +4,7 @@ import '../css/QuickAccess.css'
 interface PasswordItem {
   id: number | null
   systemName: string
+  userName: string
   password: string
   passwordHint: string
   updatedDate?: string
@@ -27,6 +28,7 @@ function newPasswordItem(): PasswordItem {
   return {
     id: null,
     systemName: '',
+    userName: '',
     password: '',
     passwordHint: '',
   }
@@ -119,11 +121,35 @@ function QuickAccess() {
     setPasswordItem({
       id: item.id,
       systemName: item.systemName,
+      userName: item.userName,
       password: '',
       passwordHint: item.passwordHint,
     })
     setActiveTab('password')
     clearMessage()
+  }
+
+  const copyPassword = async (item: PasswordItem) => {
+    clearMessage()
+    if (item.id === null) {
+      setErrorMessage('Invalid password entry')
+      return
+    }
+    try {
+      const response = await fetch(`${BASE_URL}/${item.id}`)
+      const data = await response.json()
+      if (!response.ok) throw new Error()
+      const record = data && data.data ? data.data : data
+      const password = record && record.password ? record.password : ''
+      if (!password) {
+        setErrorMessage('No password found for this entry')
+        return
+      }
+      await navigator.clipboard.writeText(password)
+      setSuccessMessage(`Password for "${item.systemName}" copied to clipboard`)
+    } catch {
+      setErrorMessage('Failed to copy password')
+    }
   }
 
   const loadHistory = async (id: number | null) => {
@@ -166,16 +192,16 @@ function QuickAccess() {
           Static Info
         </button>
         <button
-          className={`tab-btn ${activeTab === 'password' ? 'active-tab' : ''}`}
-          onClick={() => handleSetTab('password')}
-        >
-          Add Password
-        </button>
-        <button
           className={`tab-btn ${activeTab === 'list' ? 'active-tab' : ''}`}
           onClick={() => handleSetTab('list')}
         >
           Saved Passwords
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'password' ? 'active-tab' : ''}`}
+          onClick={() => handleSetTab('password')}
+        >
+          Add Password
         </button>
         <button
           className={`tab-btn ${activeTab === 'history' ? 'active-tab' : ''}`}
@@ -238,6 +264,16 @@ function QuickAccess() {
           </div>
 
           <div className="modern-form-group">
+            <label>User Name</label>
+            <input
+              type="text"
+              className="modern-input"
+              value={passwordItem.userName}
+              onChange={(e) => setPasswordItem({ ...passwordItem, userName: e.target.value })}
+            />
+          </div>
+
+          <div className="modern-form-group">
             <label>Password</label>
             <input
               type="password"
@@ -283,6 +319,7 @@ function QuickAccess() {
               <thead>
                 <tr>
                   <th>System</th>
+                  <th>User Name</th>
                   <th>Hint</th>
                   <th>Updated</th>
                   <th>Actions</th>
@@ -292,9 +329,18 @@ function QuickAccess() {
                 {passwordList.map((item) => (
                   <tr key={item.id}>
                     <td>{item.systemName}</td>
+                    <td>{item.userName}</td>
                     <td>{item.passwordHint}</td>
                     <td>{item.updatedDate}</td>
                     <td className="table-actions">
+                      {item.userName && (
+                        <button className="modern-btn secondary-btn" onClick={() => copyText(item.userName)}>
+                          Copy User
+                        </button>
+                      )}
+                      <button className="modern-btn primary-btn" onClick={() => copyPassword(item)}>
+                        Copy Password
+                      </button>
                       <button className="modern-btn warning-btn" onClick={() => editPassword(item)}>
                         Edit
                       </button>
@@ -306,7 +352,7 @@ function QuickAccess() {
                 ))}
                 {passwordList.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="empty-text">
+                    <td colSpan={5} className="empty-text">
                       No passwords saved
                     </td>
                   </tr>
